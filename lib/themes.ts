@@ -5,8 +5,8 @@ export const THEMES = [
   {
     id: "coral",
     name: "珊瑚晴空",
-    description: "暖白底色 · 明亮珊瑚",
-    color: "#fffcf9",
+    description: "清透白底 · 明亮珊瑚",
+    color: "#ffffff",
     dark: false,
   },
   {

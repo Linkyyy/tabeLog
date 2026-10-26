@@ -2,35 +2,35 @@
 :root,
 [data-theme="coral"] {
   color-scheme: light;
-  --paper: #fffcf9;
+  --paper: #ffffff;
   --white: #ffffff;
-  --soft: #f8f2ee;
+  --soft: #f8f9fa;
   --ink: #352d2b;
   --muted: #82736d;
-  --line: #eee2db;
+  --line: #eef0f2;
   --rust: #f0644b;
   --rust-dark: #ec6048;
   --olive: #b3402d;
   --accent-ink: #b3402d;
   --accent-soft: #fff0e9;
   --on-accent: #39231d;
-  --nav-bg: #fffdfaf2;
-  --map-bg: #f2f0eb;
+  --nav-bg: #fffffff5;
+  --map-bg: #ffffff;
   --map-grid: #ffffff80;
   --basket-bg: #382f2c;
   --basket-ink: #fff9f5;
   --basket-muted: #dacac2;
-  --shadow: #59362915;
+  --shadow: #2633400d;
   --rating: #ce6530;
   --danger: #ae3c2b;
   --danger-soft: #fff0ec;
-  --map-building: #e5e4df;
-  --map-park: #c4dfb6;
-  --map-water: #b1dce7;
+  --map-building: #f1f3f5;
+  --map-park: #e2f0e6;
+  --map-water: #def0f6;
   --map-road: #ffffff;
-  --map-arterial: #f1cfa1;
-  --map-label: #727d76;
-  --map-water-label: #4d96b4;
+  --map-arterial: #f9e8d5;
+  --map-label: #75828c;
+  --map-water-label: #719dad;
   --control-ink: #ffffff;
 }
 [data-theme="mint"] {

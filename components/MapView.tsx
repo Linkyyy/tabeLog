@@ -101,7 +101,7 @@ function amapStyle() {
       ? "darkblue"
       : theme === "mint"
         ? "fresh"
-        : theme === "lavender"
+        : theme === "lavender" || theme === "coral"
           ? "whitesmoke"
           : "normal";
   return `amap://styles/${name}`;
@@ -110,12 +110,7 @@ function rasterUrl() {
   const theme = document.documentElement.dataset.theme;
   if (theme === "classic")
     return "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const style =
-    theme === "midnight"
-      ? "dark_all"
-      : theme === "coral"
-        ? "rastertiles/voyager"
-        : "light_all";
+  const style = theme === "midnight" ? "dark_all" : "light_all";
   return `https://basemaps.cartocdn.com/${style}/{z}/{x}/{y}.png`;
 }
 function loadScript(id: string, src: string) {

@@ -582,7 +582,7 @@ test("all five themes switch in settings without losing menu state; saved appear
     ["午夜蓝", "midnight", "rgb(16, 23, 36)", "#101724"],
     ["雾紫银白", "lavender", "rgb(249, 250, 253)", "#f9fafd"],
     ["经典原色", "classic", "rgb(250, 249, 243)", "#f8f7f2"],
-    ["珊瑚晴空", "coral", "rgb(255, 252, 249)", "#fffcf9"],
+    ["珊瑚晴空", "coral", "rgb(255, 255, 255)", "#ffffff"],
   ]) {
     await page.getByRole("radio", { name, exact: true }).check();
     await expect(page.locator("html")).toHaveAttribute("data-theme", id);
@@ -680,7 +680,7 @@ test("theme loads before hydration, rejects invalid preferences, and still switc
       );
       await expect(page.locator("body")).toHaveCSS(
         "background-color",
-        expected === "midnight" ? "rgb(16, 23, 36)" : "rgb(255, 252, 249)",
+        expected === "midnight" ? "rgb(16, 23, 36)" : "rgb(255, 255, 255)",
       );
     } finally {
       await context.close();
@@ -767,7 +767,7 @@ test("proposed appearance includes actual demo cartography, photo covers and map
   for (const [name, color] of [
     ["午夜蓝", "rgb(30, 72, 122)"],
     ["雾紫银白", "rgb(197, 196, 239)"],
-    ["珊瑚晴空", "rgb(177, 220, 231)"],
+    ["珊瑚晴空", "rgb(222, 240, 246)"],
   ]) {
     await page.getByRole("radio", { name, exact: true }).check();
     await expect(water).toHaveCSS("fill", color);
