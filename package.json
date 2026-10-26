@@ -1,0 +1,37 @@
+{
+  "name": "tabelog-diary",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "cloudflare:init": "node --env-file-if-exists=.env.local scripts/cloudflare-init.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.900.0",
+    "@smithy/node-http-handler": "^4.12.1",
+    "https-proxy-agent": "^9.1.0",
+    "leaflet": "1.9.4",
+    "lucide-react": "^0.468.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/leaflet": "^1.9.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

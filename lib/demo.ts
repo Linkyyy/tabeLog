@@ -1,0 +1,73 @@
+import type { Entry } from "./types";
+const base = {
+  currency: "CNY" as const,
+  photos: [],
+  createdAt: "2026-09-20T10:00:00.000Z",
+  updatedAt: "2026-09-20T10:00:00.000Z",
+};
+export const DEMO_ENTRIES: Entry[] = [
+  {
+    ...base,
+    id: "demo-1",
+    name: "巷口的面包房",
+    address: "上海市徐汇区武康路",
+    city: "上海",
+    cuisine: "咖啡",
+    lat: 31.2069,
+    lng: 121.4379,
+    rating: 5,
+    price: 58,
+    visitedAt: "2026-09-20",
+    favorite: true,
+    review:
+      "在一个不用赶时间的早晨，遇到了刚出炉的可颂。外壳酥得掉渣，拿铁的温度也刚刚好。坐在窗边，看看来来往往的人，就是很好的周末。",
+  },
+  {
+    ...base,
+    id: "demo-2",
+    name: "山野食堂",
+    address: "上海市静安区愚园路",
+    city: "上海",
+    cuisine: "日料",
+    lat: 31.2232,
+    lng: 121.4437,
+    rating: 4,
+    price: 128,
+    visitedAt: "2026-09-18",
+    favorite: false,
+    review:
+      "藏在小巷里的温暖食堂。烤鲭鱼皮脆肉嫩，配上一碗热乎乎的味噌汤，平常的一天也变得满足。下次想试试店主推荐的季节定食。",
+  },
+  {
+    ...base,
+    id: "demo-3",
+    name: "一碗烟火",
+    address: "上海市黄浦区复兴中路",
+    city: "上海",
+    cuisine: "中餐",
+    lat: 31.2164,
+    lng: 121.4701,
+    rating: 5,
+    price: 86,
+    visitedAt: "2026-09-12",
+    favorite: true,
+    review:
+      "和老朋友约的一顿晚饭。红烧肉入口即化，葱油拌面朴素又香。好吃的东西总是让人想起，有些小店值得一次又一次回来。",
+  },
+  {
+    ...base,
+    id: "demo-4",
+    name: "MORI 抹茶屋",
+    address: "上海市徐汇区永嘉路",
+    city: "上海",
+    cuisine: "甜点",
+    lat: 31.2095,
+    lng: 121.4512,
+    rating: 4,
+    price: 42,
+    visitedAt: "2026-09-06",
+    favorite: false,
+    review:
+      "抹茶的微苦和奶油的轻甜配合得恰到好处。小小的店，很安静。适合给自己一个下午茶的理由。",
+  },
+];
