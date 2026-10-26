@@ -16,13 +16,11 @@ export function assertConfig() {
     "R2_ACCESS_KEY_ID",
     "R2_SECRET_ACCESS_KEY",
     "R2_BUCKET_NAME",
-    "DIARY_PASSWORD",
     "SESSION_SECRET",
   ];
   if (
     required.some((k) => !process.env[k]) ||
-    (process.env.SESSION_SECRET?.length ?? 0) < 32 ||
-    (process.env.DIARY_PASSWORD?.length ?? 0) < 12
+    (process.env.SESSION_SECRET?.length ?? 0) < 32
   )
     throw new AppError(
       "云端尚未配置完成，请按 README 设置 Cloudflare 存储和登录密钥。",

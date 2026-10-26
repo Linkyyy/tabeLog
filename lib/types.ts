@@ -1,6 +1,21 @@
 export type MapProvider = "osm" | "google" | "amap";
 export type Photo = { id: string; url: string };
+export type EntryKind = "visit" | "recipe";
+export type Visibility = "private" | "public";
+export type User = { id: string; name: string; email: string };
+export type Recipe = {
+  ingredients: string;
+  steps: string;
+  minutes: number | null;
+  servings: number;
+  difficulty: "简单" | "进阶" | "挑战";
+};
 export type Entry = {
+  kind: EntryKind;
+  visibility: Visibility;
+  ownerId: string;
+  authorName: string;
+  recipe?: Recipe;
   id: string;
   name: string;
   address: string;
@@ -20,7 +35,7 @@ export type Entry = {
 };
 export type EntryInput = Omit<
   Entry,
-  "id" | "photos" | "createdAt" | "updatedAt"
+  "id" | "photos" | "createdAt" | "updatedAt" | "ownerId" | "authorName"
 > & { keepPhotoIds?: string[] };
 export type Location = {
   lat: number;

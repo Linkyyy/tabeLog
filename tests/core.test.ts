@@ -45,3 +45,61 @@ test("entry validation accepts real entries and rejects malformed dates and numb
   ])
     assert.throws(() => parseEntry({ ...valid, ...patch }));
 });
+import {
+  hashPassword,
+  verifyPassword,
+  parseCredentials,
+} from "../lib/accounts";
+test("passwords have independent salts; correct passwords verify without storing plaintext", async () => {
+  const a = await hashPassword("a-long-test-password"),
+    b = await hashPassword("a-long-test-password");
+  assert.notEqual(a, b);
+  assert.equal(await verifyPassword("a-long-test-password", a), true);
+  assert.equal(await verifyPassword("another-password", a), false);
+  assert.equal(await verifyPassword("a-long-test-password", "bad"), false);
+});
+test("accounts normalize email and enforce password length", () => {
+  assert.equal(
+    parseCredentials(
+      {
+        email: "  ALICE@example.com ",
+        password: "a-long-password",
+        name: "Alice",
+      },
+      true,
+    ).email,
+    "alice@example.com",
+  );
+  assert.throws(() =>
+    parseCredentials({ email: "bad", password: "a-long-password" }),
+  );
+  assert.throws(() =>
+    parseCredentials({ email: "a@@example.com", password: "a-long-password" }),
+  );
+  assert.throws(() =>
+    parseCredentials({ email: "a@example.com", password: "short" }),
+  );
+});
+test("recipes validate ingredients, steps and metadata; visibility defaults to private", () => {
+  const recipe = {
+    ingredients: "番茄 2 个",
+    steps: "切块，炒熟。",
+    minutes: 10,
+    servings: 2,
+    difficulty: "简单",
+  };
+  const value = parseEntry({ ...valid, kind: "recipe", recipe });
+  assert.equal(value.visibility, "private");
+  assert.equal(value.kind, "recipe");
+  assert.equal(value.lat, 0);
+  assert.equal(value.recipe?.minutes, 10);
+  for (const r of [
+    { ...recipe, steps: "" },
+    { ...recipe, servings: 0 },
+    { ...recipe, minutes: -1 },
+    { ...recipe, difficulty: "随便" },
+  ])
+    assert.throws(() => parseEntry({ ...valid, kind: "recipe", recipe: r }));
+  for (const patch of [{ visibility: "hidden" }, { kind: "oops" }])
+    assert.throws(() => parseEntry({ ...valid, ...patch }));
+});

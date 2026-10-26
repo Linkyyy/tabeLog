@@ -1,5 +1,7 @@
-import { requireAuth } from "@/lib/auth";
+import { currentUser } from "@/lib/auth";
 import { apiError, validId } from "@/lib/http";
+import { canReadPhoto } from "@/lib/db";
+import { AppError } from "@/lib/validation";
 import { readPhoto } from "@/lib/storage";
 export const runtime = "nodejs";
 export async function GET(
@@ -7,9 +9,11 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAuth();
+    const user = await currentUser();
     const { id } = await ctx.params;
     validId(id);
+    if (!(await canReadPhoto(id, user?.id || null)))
+      throw new AppError("照片不存在或未公开", 404);
     const data = await readPhoto(id);
     return new Response(data as BodyInit, {
       headers: {

@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "tabeLog · 美食日记",
+  title: "tabeLog · 探店日记与我的菜单",
   description:
-    "好好吃饭，慢慢记录。把喜欢的小店、图文评论和每一口心动，收藏进自己的美食地图。",
+    "探店的惊喜，厨房的烟火。记录吃过的小店和亲手做的菜，私人收藏，也自在分享。",
   robots: { index: false, follow: false },
   icons: { icon: "/icon.svg" },
 };

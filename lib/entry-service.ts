@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { parseEntry, AppError } from "./validation";
 import { getEntry, insertEntry, updateEntry } from "./db";
 import { savePhoto, removePhoto } from "./storage";
-import type { Entry, Photo } from "./types";
-export async function writeEntry(request: Request, id?: string) {
+import type { Entry, Photo, User } from "./types";
+export async function writeEntry(request: Request, user: User, id?: string) {
   // Vercel's request limit is 4.5 MB; enforce a smaller aggregate limit everywhere.
   if (Number(request.headers.get("content-length")) > 4 * 1024 * 1024)
     throw new AppError("上传内容过大，请减少照片或压缩后重试", 413);
@@ -15,7 +15,7 @@ export async function writeEntry(request: Request, id?: string) {
     throw new AppError("记录格式不正确");
   }
   const input = parseEntry(raw);
-  const old = id ? await getEntry(id) : null;
+  const old = id ? await getEntry(id, user.id, true) : null;
   if (id && !old) throw new AppError("这篇日记不存在", 404);
   const keep = input.keepPhotoIds || [];
   if (keep.some((photoId) => !old?.photos.some((p) => p.id === photoId)))
@@ -33,13 +33,17 @@ export async function writeEntry(request: Request, id?: string) {
     const { keepPhotoIds: _, ...fields } = input;
     const entry: Entry = {
       ...fields,
+      ownerId: user.id,
+      authorName: user.name,
       id: id || randomUUID(),
       photos: [
         ...(old?.photos.filter((p) => keep.includes(p.id)) || []),
         ...uploads,
       ],
       createdAt: old?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(
+        Math.max(Date.now(), old ? Date.parse(old.updatedAt) + 1 : 0),
+      ).toISOString(),
     };
     if (old) await updateEntry(entry, old.updatedAt);
     else await insertEntry(entry);

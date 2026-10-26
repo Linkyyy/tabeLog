@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { localMode } from "./config";
 import type { Entry } from "./types";
@@ -12,8 +12,9 @@ async function local() {
     const dir = process.env.LOCAL_DATA_DIR || path.join(process.cwd(), ".data");
     mkdirSync(dir, { recursive: true });
     localDb = new DatabaseSync(path.join(dir, "diary.sqlite"));
+    localDb.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;");
     localDb.exec(
-      "PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS entries (id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS login_attempts (id TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires INTEGER NOT NULL);",
+      readFileSync(path.join(process.cwd(), "scripts/schema.sql"), "utf8"),
     );
   }
   return localDb;
@@ -48,18 +49,50 @@ export async function query<T>(
     );
   return result.result[0].results as T[];
 }
-export async function listEntries() {
-  const rows = await query<Row>(
-    "SELECT * FROM entries ORDER BY updated_at DESC",
-  );
-  return rows.map((r) => JSON.parse(r.data) as Entry);
+
+const selectEntries =
+  "SELECT e.*, u.name AS author_name FROM entries e JOIN users u ON u.id = json_extract(e.data, '$.ownerId')";
+function decode(row: Row & { author_name: string }): Entry {
+  return { ...JSON.parse(row.data), authorName: row.author_name };
 }
-export async function getEntry(id: string) {
-  const rows = await query<Row>("SELECT * FROM entries WHERE id = ?", [id]);
-  return rows[0] ? (JSON.parse(rows[0].data) as Entry) : null;
+export async function listEntries(
+  userId: string | null,
+  scope: "mine" | "public",
+) {
+  const where =
+    scope === "mine"
+      ? "json_extract(e.data, '$.ownerId') = ?"
+      : "json_extract(e.data, '$.visibility') = 'public'";
+  return (
+    await query<Row & { author_name: string }>(
+      `${selectEntries} WHERE ${where} ORDER BY e.updated_at DESC`,
+      scope === "mine" ? [userId] : [],
+    )
+  ).map(decode);
+}
+export async function getEntry(
+  id: string,
+  userId: string | null,
+  ownerOnly = false,
+) {
+  const permission = ownerOnly
+    ? "json_extract(e.data,'$.ownerId') = ?"
+    : "(json_extract(e.data,'$.ownerId') = ? OR json_extract(e.data,'$.visibility') = 'public')";
+  const rows = await query<Row & { author_name: string }>(
+    `${selectEntries} WHERE e.id = ? AND ${permission}`,
+    [id, userId],
+  );
+  return rows[0] ? decode(rows[0]) : null;
+}
+export async function canReadPhoto(id: string, userId: string | null) {
+  const rows = await query<{ id: string }>(
+    `${selectEntries} WHERE (json_extract(e.data,'$.ownerId') = ? OR json_extract(e.data,'$.visibility') = 'public') AND EXISTS (SELECT 1 FROM json_each(e.data,'$.photos') p WHERE json_extract(p.value,'$.id') = ?) LIMIT 1`,
+    [userId, id],
+  );
+  return !!rows.length;
 }
 export async function insertEntry(entry: Entry) {
-  await query("INSERT INTO entries (id, data, updated_at) VALUES (?, ?, ?)", [
+  await query("INSERT INTO entries (id,data,updated_at) VALUES (?,?,?)", [
     entry.id,
     JSON.stringify(entry),
     entry.updatedAt,
@@ -67,12 +100,26 @@ export async function insertEntry(entry: Entry) {
 }
 export async function updateEntry(entry: Entry, previousUpdatedAt: string) {
   const rows = await query<{ id: string }>(
-    "UPDATE entries SET data = ?, updated_at = ? WHERE id = ? AND updated_at = ? RETURNING id",
-    [JSON.stringify(entry), entry.updatedAt, entry.id, previousUpdatedAt],
+    "UPDATE entries SET data = ?, updated_at = ? WHERE id = ? AND updated_at = ? AND json_extract(data,'$.ownerId') = ? RETURNING id",
+    [
+      JSON.stringify(entry),
+      entry.updatedAt,
+      entry.id,
+      previousUpdatedAt,
+      entry.ownerId,
+    ],
   );
   if (!rows.length)
-    throw new AppError("这篇日记已被其他窗口更新，请刷新后重试", 409);
+    throw new AppError("这篇记录已被其他窗口更新，请刷新后重试", 409);
 }
-export async function deleteEntry(id: string) {
-  return query("DELETE FROM entries WHERE id = ? RETURNING id", [id]);
+export async function deleteEntry(
+  id: string,
+  ownerId: string,
+  previousUpdatedAt: string,
+) {
+  const rows = await query<{ id: string }>(
+    "DELETE FROM entries WHERE id = ? AND json_extract(data,'$.ownerId') = ? AND updated_at = ? RETURNING id",
+    [id, ownerId, previousUpdatedAt],
+  );
+  if (!rows.length) throw new AppError("这篇记录已更新，请刷新后再删除", 409);
 }

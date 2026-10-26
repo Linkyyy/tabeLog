@@ -1,5 +1,9 @@
 import type { Entry } from "./types";
 const base = {
+  kind: "visit" as const,
+  visibility: "public" as const,
+  ownerId: "demo",
+  authorName: "tabeLog",
   currency: "CNY" as const,
   photos: [],
   createdAt: "2026-09-20T10:00:00.000Z",
@@ -69,5 +73,83 @@ export const DEMO_ENTRIES: Entry[] = [
     favorite: false,
     review:
       "抹茶的微苦和奶油的轻甜配合得恰到好处。小小的店，很安静。适合给自己一个下午茶的理由。",
+  },
+];
+export const DEMO_RECIPES: Entry[] = [
+  {
+    ...base,
+    id: "recipe-demo-1",
+    kind: "recipe",
+    name: "番茄慢炖牛腩",
+    address: "",
+    city: "",
+    cuisine: "中餐",
+    lat: 0,
+    lng: 0,
+    rating: 5,
+    price: null,
+    visitedAt: "2026-10-24",
+    favorite: true,
+    review:
+      "周末的幸福，是厨房里咕嘟咕嘟的声音。番茄的酸甜融进汤汁，配上热米饭，整个人都被治愈了。",
+    recipe: {
+      ingredients:
+        "牛腩 500 克\n番茄 3 个\n土豆 1 个\n生姜 3 片\n生抽 2 勺\n盐 适量",
+      steps:
+        "牛腩切块，冷水下锅焯去浮沫，捞出洗净。\n番茄切块，锅中热油，炒出浓郁的番茄汁。\n加入牛腩、生姜和生抽，倒入热水，小火慢炖 90 分钟。\n加入土豆，继续炖 20 分钟，撒盐调味出锅。",
+      minutes: 120,
+      servings: 3,
+      difficulty: "简单",
+    },
+  },
+  {
+    ...base,
+    id: "recipe-demo-2",
+    kind: "recipe",
+    name: "一人份的日式咖喱",
+    address: "",
+    city: "",
+    cuisine: "日料",
+    lat: 0,
+    lng: 0,
+    rating: 4,
+    price: null,
+    visitedAt: "2026-10-20",
+    favorite: false,
+    review: "一个人也要认真吃饭。洋葱炒到焦糖色，咖喱就会多一层温柔的甜。",
+    recipe: {
+      ingredients:
+        "鸡腿肉 150 克\n洋葱 半个\n土豆 1 个\n胡萝卜 半根\n咖喱块 2 块",
+      steps:
+        "鸡腿切块，蔬菜切滚刀块。\n洋葱炒至微焦，加入鸡肉煎香。\n加入蔬菜和水，煮至土豆软透。\n关火融入咖喱块，再小火煮到浓稠。",
+      minutes: 35,
+      servings: 1,
+      difficulty: "简单",
+    },
+  },
+  {
+    ...base,
+    id: "recipe-demo-3",
+    kind: "recipe",
+    name: "抹茶巴斯克",
+    address: "",
+    city: "",
+    cuisine: "甜点",
+    lat: 0,
+    lng: 0,
+    rating: 5,
+    price: null,
+    visitedAt: "2026-10-16",
+    favorite: true,
+    review: "把烤箱交给时间，把下午留给自己。微苦的抹茶和绵密奶酪，刚刚好。",
+    recipe: {
+      ingredients:
+        "奶油奶酪 250 克\n鸡蛋 2 个\n淡奶油 120 毫升\n白砂糖 60 克\n抹茶粉 8 克",
+      steps:
+        "奶油奶酪软化，与糖搅拌顺滑。\n分次加入鸡蛋，再加入淡奶油和过筛的抹茶粉。\n倒入铺好烘焙纸的模具，220°C 烘烤 25 分钟。\n放凉后冷藏一夜，享受绵密口感。",
+      minutes: 45,
+      servings: 4,
+      difficulty: "进阶",
+    },
   },
 ];

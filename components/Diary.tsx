@@ -6,10 +6,9 @@ import {
   ArrowRight,
   BookOpen,
   Check,
-  ChevronLeft,
-  ChevronRight,
-  Coffee,
+  ChefHat,
   Download,
+  Globe2,
   Heart,
   LayoutGrid,
   LoaderCircle,
@@ -17,24 +16,26 @@ import {
   LogOut,
   Map as MapIcon,
   MapPin,
-  Navigation,
   Plus,
   Search,
   Sparkles,
-  Star,
-  Trash2,
   Utensils,
   X,
-  Pencil,
-  CalendarDays,
-  Wallet,
   AlertCircle,
 } from "lucide-react";
-import type { Entry, Location, MapProvider } from "@/lib/types";
-import { CUISINES, CURRENCIES } from "@/lib/types";
-import { DEMO_ENTRIES } from "@/lib/demo";
+import type {
+  Entry,
+  EntryKind,
+  Location,
+  MapProvider,
+  User,
+} from "@/lib/types";
+import { CUISINES } from "@/lib/types";
+import { DEMO_ENTRIES, DEMO_RECIPES } from "@/lib/demo";
 import EntryForm from "./EntryForm";
+import AuthForm from "./AuthForm";
 import Modal from "./Modal";
+import { Logo, EntryCard, EntryDetail } from "./EntryPresentation";
 const MapView = dynamic(() => import("./MapView"), {
   ssr: false,
   loading: () => (
@@ -53,322 +54,132 @@ const icons: Record<string, string> = {
   小吃: "🥟",
   其他: "🍽️",
 };
-function Logo() {
-  return (
-    <a href="/" className="brand" aria-label="tabeLog 美食日记首页">
-      <span className="brand-mark">
-        <Utensils size={22} strokeWidth={1.6} />
-      </span>
-      <span>
-        tabe<span className="brand-log">Log</span>
-        <small>私の、おいしい記録。</small>
-      </span>
-    </a>
-  );
-}
-function Stars({ rating }: { rating: number }) {
-  return (
-    <span className="stars" aria-label={`${rating} 星`}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          size={12}
-          key={n}
-          fill={n <= rating ? "currentColor" : "none"}
-          className={n > rating ? "unfilled" : ""}
-        />
-      ))}
-      <b>{rating.toFixed(1)}</b>
-    </span>
-  );
-}
-function FoodCover({
-  entry,
-  small = false,
+function Hero({
+  kind,
+  demo,
+  onDemo,
 }: {
-  entry: Entry;
-  small?: boolean;
+  kind: EntryKind;
+  demo: boolean;
+  onDemo: () => void;
 }) {
+  const recipe = kind === "recipe";
   return (
-    <div
-      className={`food-cover cuisine-${CUISINES.indexOf(entry.cuisine)} ${small ? "small" : ""}`}
-    >
-      {entry.photos[0] ? (
-        <img
-          src={entry.photos[0].url}
-          alt={`${entry.name}的美食照片`}
-          loading="lazy"
-        />
-      ) : (
-        <>
-          <span className="cover-orbit orbit-one" />
-          <span className="cover-orbit orbit-two" />
-          <span className="food-emoji" aria-hidden="true">
-            {icons[entry.cuisine] || "🍽️"}
-          </span>
-          <span className="cover-label">a little taste of happiness</span>
-        </>
-      )}
-    </div>
-  );
-}
-function EntryCard({
-  entry,
-  onOpen,
-  onLocate,
-}: {
-  entry: Entry;
-  onOpen: () => void;
-  onLocate: () => void;
-}) {
-  return (
-    <article className="entry-card">
-      <button
-        className="card-cover-button"
-        onClick={onOpen}
-        aria-label={`查看 ${entry.name}`}
-      >
-        <FoodCover entry={entry} />
-        <span className="cuisine-pill">{entry.cuisine}</span>
-        {entry.favorite && (
-          <span className="card-heart">
-            <Heart size={15} fill="currentColor" />
-          </span>
-        )}
-        {entry.photos.length > 1 && (
-          <span className="photo-count">{entry.photos.length} 张照片</span>
-        )}
-      </button>
-      <div className="card-body">
-        <div className="card-meta">
-          <span>{entry.visitedAt.replaceAll("-", ".")}</span>
-          <Stars rating={entry.rating} />
+    <section className={`journal-hero ${recipe ? "recipe-hero" : ""}`}>
+      <div className="hero-copy">
+        <div className="eyebrow">
+          <span className="tiny-line" />
+          {recipe ? "COOK. CREATE. CHERISH." : "TASTE. REMEMBER. REPEAT."}
         </div>
-        <button className="card-title" onClick={onOpen}>
-          {entry.name}
-        </button>
-        <div className="card-address">
-          <MapPin size={13} />
-          <span>{entry.address || entry.city || "已标记地图位置"}</span>
-        </div>
-        <p className="card-review">
-          {entry.review || "有些美味，不用太多言语。"}
+        <h1>
+          {recipe ? "把日子，" : "好好吃饭，"}
+          <br />
+          <span>{recipe ? "煮成喜欢的味道。" : "慢慢记录。"}</span>
+          <span className="hero-period">✳</span>
+        </h1>
+        <p>
+          {recipe ? (
+            <>
+              那些拿手的家常菜，和偶然成功的小尝试，
+              <br className="desktop-break" />
+              都是属于你的，独一份的烟火气。
+            </>
+          ) : (
+            <>
+              把路过的城市、喜欢的小店，和每一口心动，
+              <br className="desktop-break" />
+              都收藏进自己的美食地图。
+            </>
+          )}
         </p>
-        <div className="card-footer">
-          <span>
-            {entry.price !== null ? (
-              <>
-                {CURRENCIES[entry.currency]}
-                {entry.price.toLocaleString()}
-                <small> / 人</small>
-              </>
-            ) : (
-              <small>一餐一记</small>
-            )}
+        <div className="hero-bottom">
+          <span className="hero-signature">
+            {recipe ? "厨房很小，日子很香。" : "一餐一记，一味一忆。"}
           </span>
-          <button onClick={onLocate} aria-label={`在地图查看 ${entry.name}`}>
-            去地图看看 <Navigation size={12} />
+          <button
+            className="text-button"
+            aria-label={demo ? "结束示例漫游" : "浏览示例日记"}
+            onClick={onDemo}
+          >
+            {demo
+              ? "回到真实记录"
+              : recipe
+                ? "翻翻示例菜谱"
+                : "随便逛逛 · 示例日记"}
+            <ArrowRight size={14} />
           </button>
         </div>
       </div>
-    </article>
-  );
-}
-function EntryDetail({
-  entry,
-  demo,
-  onClose,
-  onEdit,
-  onDelete,
-}: {
-  entry: Entry;
-  demo: boolean;
-  onClose: () => void;
-  onEdit: () => void;
-  onDelete: () => Promise<void>;
-}) {
-  const [index, setIndex] = useState(0),
-    [confirm, setConfirm] = useState(false),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const photo = entry.photos[index];
-  return (
-    <Modal title="美味的记忆" onClose={onClose}>
-      <div className="detail-body">
-        <div className="detail-cover">
-          {photo ? (
-            <img src={photo.url} alt={`${entry.name}的照片 ${index + 1}`} />
-          ) : (
-            <FoodCover entry={entry} />
-          )}{" "}
-          {entry.photos.length > 1 && (
-            <>
-              <button
-                className="gallery-prev"
-                aria-label="上一张照片"
-                onClick={() =>
-                  setIndex(
-                    (index + entry.photos.length - 1) % entry.photos.length,
-                  )
-                }
-              >
-                <ChevronLeft />
-              </button>
-              <button
-                className="gallery-next"
-                aria-label="下一张照片"
-                onClick={() => setIndex((index + 1) % entry.photos.length)}
-              >
-                <ChevronRight />
-              </button>
-              <span className="gallery-index">
-                {index + 1} / {entry.photos.length}
-              </span>
-            </>
-          )}
+      <div className="hero-art" aria-hidden="true">
+        <div className="art-label">
+          {recipe ? "HOMEMADE WITH LOVE." : "THE LITTLE THINGS"}
+          <br />
+          {recipe ? "HAPPINESS ON A PLATE." : "THAT TASTE LIKE LIFE."}
         </div>
-        <div className="detail-content">
-          <div className="detail-kicker">
-            <span className="tag">{entry.cuisine}</span>
-            {entry.city && <span>{entry.city}</span>}
-            {entry.favorite && (
-              <span className="favorite-text">
-                <Heart size={14} fill="currentColor" />
-                心头好
-              </span>
-            )}
+        <div className="art-ring ring-one" />
+        <div className="art-ring ring-two" />
+        <div className="plate">
+          <div className="plate-inner">
+            <div className="food-leaf leaf-one" />
+            <div className="food-leaf leaf-two" />
+            <div className="food-leaf leaf-three" />
+            <div className="salmon salmon-one" />
+            <div className="salmon salmon-two" />
+            <div className="salmon salmon-three" />
+            <div className="lemon" />
+            <div className="tomato tomato-one" />
+            <div className="tomato tomato-two" />
           </div>
-          <h2>{entry.name}</h2>
-          <Stars rating={entry.rating} />
-          <div className="detail-facts">
-            <span>
-              <CalendarDays size={15} />
-              {entry.visitedAt}
-            </span>
-            {entry.price !== null && (
-              <span>
-                <Wallet size={15} />
-                {CURRENCIES[entry.currency]}
-                {entry.price} / 人
-              </span>
-            )}
-          </div>
-          <p className="detail-address">
-            <MapPin size={16} />
-            {entry.address ||
-              `${entry.lat.toFixed(5)}, ${entry.lng.toFixed(5)}`}
-          </p>
-          <div className="detail-review">
-            {entry.review || "这篇日记还没有写下文字。"}
-          </div>
-          <p className="detail-coordinates">
-            WGS-84 · {entry.lat.toFixed(6)}, {entry.lng.toFixed(6)}
-          </p>
-          {demo ? (
-            <p className="demo-detail-note">
-              这是一条示例记录，不会保存到你的日记。
-            </p>
-          ) : (
-            <div className="detail-actions">
-              <button className="button secondary" onClick={onEdit}>
-                <Pencil size={15} />
-                编辑日记
-              </button>
-              <button
-                className="text-button danger"
-                onClick={() => setConfirm(true)}
-              >
-                <Trash2 size={15} />
-                删除
-              </button>
-            </div>
-          )}
-          {confirm && (
-            <div className="delete-confirm" role="alert">
-              <strong>确定删除这篇日记？</strong>
-              <p>文字和照片将一起删除，无法恢复。</p>
-              <div>
-                <button
-                  className="button secondary"
-                  onClick={() => setConfirm(false)}
-                  disabled={busy}
-                >
-                  再想想
-                </button>
-                <button
-                  className="button destructive"
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      await onDelete();
-                    } catch (e) {
-                      setError(e instanceof Error ? e.message : "删除失败");
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  {busy ? "正在删除…" : "确认删除"}
-                </button>
-              </div>
-              {error && <p className="form-error">{error}</p>}
-            </div>
-          )}
         </div>
+        <div className="chopstick chopstick-one" />
+        <div className="chopstick chopstick-two" />
+        <div className="art-sticker">
+          <span>{recipe ? "てづくり" : "おいしい"}</span>
+          <strong>{recipe ? "自炊" : "日常"}</strong>
+          <span>GOOD FOOD, GOOD MOOD</span>
+        </div>
+        <span className="art-spark spark-one">✳</span>
+        <span className="art-spark spark-two">+</span>
+        <span className="art-note">
+          {recipe
+            ? "made by me, made with love ↗"
+            : "made of little happy moments ↗"}
+        </span>
       </div>
-    </Modal>
+    </section>
   );
 }
 export default function Diary() {
-  const [session, setSession] = useState<{
-      local: boolean;
-      passwordEnabled: boolean;
-    } | null>(null),
-    [loggedIn, setLoggedIn] = useState(false),
+  const [user, setUser] = useState<User | null>(null),
     [booting, setBooting] = useState(true),
-    [fatal, setFatal] = useState("");
-  const [password, setPassword] = useState(""),
-    [loginError, setLoginError] = useState(""),
-    [loggingIn, setLoggingIn] = useState(false);
-  const [entries, setEntries] = useState<Entry[]>([]),
-    [dataLoading, setDataLoading] = useState(false),
-    [error, setError] = useState(""),
-    [demo, setDemo] = useState(false);
-  const [provider, setProvider] = useState<MapProvider>("osm"),
+    [fatal, setFatal] = useState(""),
+    [registrationOpen, setRegistrationOpen] = useState(true),
+    [authOpen, setAuthOpen] = useState(false);
+  const [kind, setKind] = useState<EntryKind>("visit"),
+    [scope, setScope] = useState<"mine" | "public">("public"),
     [view, setView] = useState<"journal" | "map">("journal"),
+    [provider, setProvider] = useState<MapProvider>("osm");
+  const [entries, setEntries] = useState<Entry[]>([]),
+    [loading, setLoading] = useState(false),
+    [error, setError] = useState(""),
+    [demo, setDemo] = useState(false),
     [query, setQuery] = useState(""),
     [category, setCategory] = useState("全部"),
     [favorites, setFavorites] = useState(false),
-    [sort, setSort] = useState("date");
+    [sort, setSort] = useState("date"),
+    [privacy, setPrivacy] = useState("all");
   const [selected, setSelected] = useState<Entry | null>(null),
     [editing, setEditing] = useState<Entry | undefined>(),
     [formOpen, setFormOpen] = useState(false),
     [initialLocation, setInitialLocation] = useState<Location | undefined>(),
-    [mapFocus, setMapFocus] = useState<Location | null>(null),
+    [focus, setFocus] = useState<Location | null>(null),
     [toast, setToast] = useState("");
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    loadId = useRef(0);
   function notify(message: string) {
     setToast(message);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 3500);
-  }
-  async function loadEntries() {
-    setDataLoading(true);
-    setError("");
-    try {
-      const r = await fetch("/api/entries", { cache: "no-store" });
-      const data = await r.json();
-      if (r.status === 401) {
-        setLoggedIn(false);
-        return;
-      }
-      if (!r.ok) throw new Error(data.error);
-      setEntries(data.entries);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "无法加载记录，请检查网络");
-    } finally {
-      setDataLoading(false);
-    }
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(""), 3500);
   }
   useEffect(() => {
     let active = true;
@@ -377,8 +188,9 @@ export default function Diary() {
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
         if (active) {
-          setSession(data);
-          setLoggedIn(data.authenticated);
+          setUser(data.user);
+          setScope(data.user ? "mine" : "public");
+          setRegistrationOpen(data.registrationOpen);
         }
       })
       .catch((e) => {
@@ -392,58 +204,140 @@ export default function Diary() {
       setProvider(saved as MapProvider);
     return () => {
       active = false;
-      if (toastTimer.current) clearTimeout(toastTimer.current);
+      if (timer.current) clearTimeout(timer.current);
     };
   }, []);
-  useEffect(() => {
-    if (loggedIn) loadEntries();
-  }, [loggedIn]);
-  function changeProvider(v: MapProvider) {
-    setProvider(v);
-    localStorage.setItem("tabelog-map", v);
+  async function loadEntries() {
+    const id = ++loadId.current;
+    if (scope === "mine" && !user) {
+      setEntries([]);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const r = await fetch(`/api/entries?scope=${scope}`, {
+        cache: "no-store",
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      if (id === loadId.current) setEntries(data.entries);
+    } catch (e) {
+      if (id === loadId.current) {
+        setEntries([]);
+        setError(e instanceof Error ? e.message : "无法加载记录，请重试");
+      }
+    } finally {
+      if (id === loadId.current) setLoading(false);
+    }
   }
-  const source = demo ? DEMO_ENTRIES : entries;
+  useEffect(() => {
+    if (!booting) loadEntries();
+    return () => {
+      loadId.current++;
+    };
+  }, [scope, user, booting]);
+  function filtersReset() {
+    setQuery("");
+    setCategory("全部");
+    setFavorites(false);
+    setPrivacy("all");
+  }
+  function changeKind(next: EntryKind) {
+    setKind(next);
+    setView("journal");
+    setSelected(null);
+    filtersReset();
+  }
+  function changeScope(next: "mine" | "public") {
+    setScope(next);
+    setEntries([]);
+    setSelected(null);
+    setDemo(false);
+    filtersReset();
+  }
+  function changeProvider(next: MapProvider) {
+    setProvider(next);
+    localStorage.setItem("tabelog-map", next);
+  }
+  const source = (
+    demo ? (kind === "recipe" ? DEMO_RECIPES : DEMO_ENTRIES) : entries
+  ).filter(
+    (e) =>
+      e.kind === kind &&
+      (demo ||
+        (scope === "mine"
+          ? e.ownerId === user?.id
+          : e.visibility === "public")),
+  );
   const filtered = useMemo(
     () =>
       source
         .filter(
           (e) =>
+            (scope !== "mine" ||
+              privacy === "all" ||
+              e.visibility === privacy) &&
             (category === "全部" || e.cuisine === category) &&
             (!favorites || e.favorite) &&
-            `${e.name} ${e.address} ${e.city} ${e.review}`
-              .toLocaleLowerCase()
-              .includes(query.toLocaleLowerCase().trim()),
+            `${e.name} ${e.address} ${e.city} ${e.review} ${e.authorName} ${e.recipe?.ingredients || ""}`
+              .toLowerCase()
+              .includes(query.trim().toLowerCase()),
         )
         .sort((a, b) =>
           sort === "rating"
             ? b.rating - a.rating || b.visitedAt.localeCompare(a.visitedAt)
             : b.visitedAt.localeCompare(a.visitedAt),
         ),
-    [source, category, favorites, query, sort],
+    [source, category, favorites, query, sort, scope, privacy],
   );
-  const cities = new Set(source.map((e) => e.city.trim()).filter(Boolean)).size;
-  const average = source.length
-    ? (source.reduce((s, e) => s + e.rating, 0) / source.length).toFixed(1)
-    : "—";
-  function newEntry(p?: Location) {
+  function newEntry(point?: Location) {
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
     setEditing(undefined);
-    setInitialLocation(p);
+    setInitialLocation(point);
     setFormOpen(true);
   }
   function saved(entry: Entry) {
-    setEntries((v) => [entry, ...v.filter((e) => e.id !== entry.id)]);
+    setEntries((current) => [
+      entry,
+      ...current.filter((e) => e.id !== entry.id),
+    ]);
     setFormOpen(false);
     setEditing(undefined);
     setSelected(null);
     setDemo(false);
-    setCategory("全部");
-    setFavorites(false);
-    setQuery("");
-    notify("这份美味，已经好好收藏。");
+    setScope("mine");
+    filtersReset();
+    notify(
+      entry.visibility === "public"
+        ? "已保存，并分享到美味广场。"
+        : "已保存，只有你自己可见。",
+    );
   }
-  function locate(entry: Entry) {
-    setView("map");
-    setMapFocus({ lat: entry.lat, lng: entry.lng });
+  function signedIn(next: User) {
+    setUser(next);
+    setAuthOpen(false);
+    setDemo(false);
+    changeScope("mine");
+    notify(`欢迎回来，${next.name}。`);
+  }
+  async function logout() {
+    try {
+      const r = await fetch("/api/session", { method: "DELETE" });
+      if (!r.ok) throw new Error();
+      setUser(null);
+      setEntries([]);
+      setSelected(null);
+      setFormOpen(false);
+      setDemo(false);
+      setScope("public");
+      notify("已退出登录");
+    } catch {
+      notify("退出失败，请重试");
+    }
   }
   async function remove() {
     if (!selected) return;
@@ -452,61 +346,42 @@ export default function Diary() {
     if (!r.ok) throw new Error(data.error);
     setEntries((v) => v.filter((e) => e.id !== selected.id));
     setSelected(null);
-    notify("日记已删除");
+    notify("这篇记录已删除");
   }
   function exportDiary() {
-    const data = JSON.stringify(
-      { app: "tabeLog", exportedAt: new Date().toISOString(), entries: source },
-      null,
-      2,
-    );
     const url = URL.createObjectURL(
-      new Blob([data], { type: "application/json" }),
+      new Blob(
+        [
+          JSON.stringify(
+            {
+              app: "tabeLog",
+              exportedAt: new Date().toISOString(),
+              entries: source,
+            },
+            null,
+            2,
+          ),
+        ],
+        { type: "application/json" },
+      ),
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tabelog-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `tabelog-${kind}-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     notify("文字与坐标已导出；照片请另外保存。");
   }
-  async function login(e: React.FormEvent) {
-    e.preventDefault();
-    setLoggingIn(true);
-    setLoginError("");
-    try {
-      const r = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error);
-      setPassword("");
-      setLoggedIn(true);
-    } catch (e) {
-      setLoginError(e instanceof Error ? e.message : "登录失败");
-    } finally {
-      setLoggingIn(false);
-    }
+  function locate(entry: Entry) {
+    setView("map");
+    setFocus({ lat: entry.lat, lng: entry.lng });
   }
-  async function logout() {
-    try {
-      const r = await fetch("/api/session", { method: "DELETE" });
-      if (!r.ok) throw new Error();
-      setEntries([]);
-      setSelected(null);
-      setLoggedIn(false);
-      setDemo(false);
-    } catch {
-      notify("退出失败，请重试");
-    }
-  }
+  const recipe = kind === "recipe";
   if (booting)
     return (
       <main className="boot-screen">
         <Logo />
-        <LoaderCircle size={25} className="spin" />
+        <LoaderCircle className="spin" size={25} />
         <p>把美好的味道，慢慢收集。</p>
       </main>
     );
@@ -515,10 +390,9 @@ export default function Diary() {
       <main className="login-page">
         <Logo />
         <div className="login-card">
-          <AlertCircle size={32} />
+          <AlertCircle size={30} />
           <h1>还差一点，就能开饭。</h1>
           <p>{fatal}</p>
-          <p>请检查环境变量，并运行数据库初始化脚本。</p>
           <button
             className="button secondary"
             onClick={() => window.location.reload()}
@@ -528,62 +402,6 @@ export default function Diary() {
         </div>
       </main>
     );
-  if (!loggedIn)
-    return (
-      <main className="login-page">
-        <Logo />
-        <div className="login-decoration">
-          おいしい
-          <br />
-          <span>日常を、記録する。</span>
-        </div>
-        <form className="login-card" onSubmit={login}>
-          <span className="login-icon">
-            <LockKeyhole size={27} />
-          </span>
-          <span className="eyebrow">YOUR PRIVATE FOOD JOURNAL</span>
-          <h1>
-            欢迎回到
-            <br />
-            你的美味日常。
-          </h1>
-          <p>每一顿认真吃的饭，都值得被记住。</p>
-          <label>
-            日记密码
-            <input
-              autoFocus
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="输入你的私人密码"
-              maxLength={256}
-            />
-          </label>
-          {loginError && (
-            <p className="form-error" role="alert">
-              {loginError}
-            </p>
-          )}
-          <button className="button primary" disabled={loggingIn}>
-            {loggingIn ? (
-              <LoaderCircle className="spin" size={18} />
-            ) : (
-              <>
-                打开我的日记 <ArrowRight size={17} />
-              </>
-            )}
-          </button>
-          <small>
-            <LockKeyhole size={12} />
-            只属于你的，一餐一记。
-          </small>
-        </form>
-        <footer>tabeLog · 美食日记</footer>
-      </main>
-    );
   return (
     <>
       <header className="site-header">
@@ -591,409 +409,452 @@ export default function Diary() {
           <Logo />
           <nav aria-label="主导航">
             <button
-              title="我的日记"
-              className={view === "journal" ? "nav-link active" : "nav-link"}
-              onClick={() => setView("journal")}
+              title="探店日记"
+              aria-pressed={!recipe}
+              className={!recipe ? "nav-link active" : "nav-link"}
+              onClick={() => changeKind("visit")}
             >
-              <BookOpen size={17} />
-              我的日记
+              <MapPin size={17} />
+              探店日记
             </button>
             <button
-              title="美食地图"
-              className={view === "map" ? "nav-link active" : "nav-link"}
-              onClick={() => setView("map")}
+              title="我的菜单"
+              aria-pressed={recipe}
+              className={recipe ? "nav-link active" : "nav-link"}
+              onClick={() => changeKind("recipe")}
             >
-              <MapIcon size={17} />
-              美食地图
+              <ChefHat size={18} />
+              我的菜单
             </button>
           </nav>
           <div className="header-actions">
-            <span className="private-badge">
-              <LockKeyhole size={12} />
-              {session?.local ? "本地日记" : "私人空间"}
-            </span>
-            {session?.passwordEnabled && (
+            {user ? (
+              <>
+                <span className="account-name" title={user.email}>
+                  {user.name}
+                </span>
+                <button
+                  className="icon-button"
+                  aria-label="退出登录"
+                  onClick={logout}
+                >
+                  <LogOut size={17} />
+                </button>
+              </>
+            ) : (
               <button
-                className="icon-button"
-                aria-label="退出登录"
-                onClick={logout}
+                className="text-button login-trigger"
+                onClick={() => setAuthOpen(true)}
               >
-                <LogOut size={17} />
+                登录 / 注册
               </button>
             )}
             <button
               className="button primary header-add"
+              aria-label={recipe ? "记录一道菜" : "记一笔"}
               onClick={() => newEntry()}
             >
               <Plus size={17} />
-              <span>记一笔</span>
+              <span>{recipe ? "记录一道菜" : "记一笔"}</span>
             </button>
           </div>
         </div>
       </header>
       <main className="page-wrap">
-        <section className="journal-hero">
-          <div className="hero-copy">
-            <div className="eyebrow">
-              <span className="tiny-line" /> TASTE. REMEMBER. REPEAT.
-            </div>
-            <h1>
-              好好吃饭，
-              <br />
-              <span>慢慢记录。</span>
-              <span className="hero-period">✳</span>
-            </h1>
-            <p>
-              把路过的城市、喜欢的小店，和每一口心动，
-              <br className="desktop-break" />
-              都收藏进自己的美食地图。
-            </p>
-            <div className="hero-bottom">
-              <span className="hero-signature">一餐一记，一味一忆。</span>
-              <button
-                className="text-button"
-                aria-label={demo ? "结束示例漫游" : "浏览示例日记"}
-                onClick={() => {
-                  setDemo(!demo);
-                  setCategory("全部");
-                  setFavorites(false);
-                  setQuery("");
-                }}
-              >
-                {demo ? "回到我的日记" : "随便逛逛 · 示例日记"}
-                <ArrowRight size={14} />
-              </button>
-            </div>
-          </div>
-          <div className="hero-art" aria-hidden="true">
-            <div className="art-label">
-              THE LITTLE THINGS
-              <br />
-              THAT TASTE LIKE LIFE.
-            </div>
-            <div className="art-ring ring-one" />
-            <div className="art-ring ring-two" />
-            <div className="plate">
-              <div className="plate-inner">
-                <div className="food-leaf leaf-one" />
-                <div className="food-leaf leaf-two" />
-                <div className="food-leaf leaf-three" />
-                <div className="salmon salmon-one" />
-                <div className="salmon salmon-two" />
-                <div className="salmon salmon-three" />
-                <div className="lemon" />
-                <div className="tomato tomato-one" />
-                <div className="tomato tomato-two" />
+        <Hero
+          kind={kind}
+          demo={demo}
+          onDemo={() => {
+            setDemo(!demo);
+            filtersReset();
+          }}
+        />
+        <div className="space-tabs" role="group" aria-label="浏览空间">
+          <button
+            className={scope === "mine" ? "active" : ""}
+            aria-pressed={scope === "mine"}
+            onClick={() => changeScope("mine")}
+          >
+            <LockKeyhole size={15} />
+            我的空间<small>PRIVATE & PERSONAL</small>
+          </button>
+          <button
+            className={scope === "public" ? "active" : ""}
+            aria-pressed={scope === "public"}
+            onClick={() => changeScope("public")}
+          >
+            <Globe2 size={15} />
+            美味广场<small>GOOD TASTE, SHARED</small>
+          </button>
+          <span>
+            {scope === "mine"
+              ? "私人收藏，也可以自在分享。"
+              : "看看大家的美味日常。"}
+          </span>
+        </div>
+        <section className="stats-row" aria-label="美食统计">
+          {[
+            {
+              icon: recipe ? ChefHat : Utensils,
+              value: source.length,
+              label: recipe ? "道亲手做的菜" : "篇探店日记",
+            },
+            {
+              icon: recipe ? BookOpen : MapPin,
+              value: recipe
+                ? new Set(source.map((e) => e.cuisine)).size
+                : new Set(source.map((e) => e.city).filter(Boolean)).size,
+              label: recipe ? "种料理风味" : "座城市足迹",
+            },
+            {
+              icon: Heart,
+              value: source.filter((e) => e.favorite).length,
+              label: recipe ? "道拿手好菜" : "家心头好",
+            },
+            {
+              icon: Globe2,
+              value: source.filter((e) => e.visibility === "public").length,
+              label: "篇公开分享",
+            },
+          ].map((s, i) => (
+            <div className="stat" key={i}>
+              <span className="stat-icon">
+                <s.icon size={20} />
+              </span>
+              <div>
+                <strong>{String(s.value).padStart(2, "0")}</strong>
+                <span>{s.label}</span>
               </div>
             </div>
-            <div className="chopstick chopstick-one" />
-            <div className="chopstick chopstick-two" />
-            <div className="art-sticker">
-              <span>おいしい</span>
-              <strong>日常</strong>
-              <span>GOOD FOOD, GOOD MOOD</span>
-            </div>
-            <span className="art-spark spark-one">✳</span>
-            <span className="art-spark spark-two">+</span>
-            <span className="art-note">made of little happy moments ↗</span>
-          </div>
-        </section>
-        <section className="stats-row" aria-label="我的美食统计">
-          <div className="stat">
-            <span className="stat-icon">
-              <Utensils size={20} />
-            </span>
-            <div>
-              <strong>{source.length.toString().padStart(2, "0")}</strong>
-              <span>篇美味日记</span>
-            </div>
-          </div>
-          <div className="stat">
-            <span className="stat-icon">
-              <MapPin size={20} />
-            </span>
-            <div>
-              <strong>{cities.toString().padStart(2, "0")}</strong>
-              <span>座城市足迹</span>
-            </div>
-          </div>
-          <div className="stat">
-            <span className="stat-icon">
-              <Heart size={20} />
-            </span>
-            <div>
-              <strong>
-                {source
-                  .filter((e) => e.favorite)
-                  .length.toString()
-                  .padStart(2, "0")}
-              </strong>
-              <span>家心头好</span>
-            </div>
-          </div>
-          <div className="stat">
-            <span className="stat-icon">
-              <Star size={20} />
-            </span>
-            <div>
-              <strong>{average}</strong>
-              <span>分平均满意度</span>
-            </div>
-          </div>
+          ))}
           <span className="stats-note">
-            美味有迹可循 <Sparkles size={15} />
+            一口一份记忆 <Sparkles size={15} />
           </span>
         </section>
-        <section className="journal-section">
-          <div className="section-heading">
+        {scope === "mine" && !user && !demo ? (
+          <section className="signin-prompt">
             <div>
-              <span className="eyebrow">MY TASTY COLLECTION</span>
+              <span className="eyebrow">A SPACE THAT’S TRULY YOURS</span>
               <h2>
-                {view === "journal" ? "美味手帖" : "我的美食足迹"}
-                <span>{source.length}</span>
+                让每一份美味，
+                <br />
+                都有自己的位置。
               </h2>
+              <p>
+                登录后，收藏探店的足迹，记下自己做的菜。
+                <br />
+                私人保存，或把喜欢的味道分享出去。
+              </p>
             </div>
-            <div className="section-actions">
-              <button
-                className="icon-button export-button"
-                onClick={exportDiary}
-                disabled={!source.length}
-                title="导出日记文字与坐标"
-                aria-label="导出日记"
-              >
-                <Download size={17} />
-              </button>
-              <div className="view-switch" aria-label="浏览方式">
-                <button
-                  onClick={() => setView("journal")}
-                  className={view === "journal" ? "selected" : ""}
-                  aria-label="卡片视图"
-                  aria-pressed={view === "journal"}
-                >
-                  <LayoutGrid size={16} />
-                  <span>手帖</span>
-                </button>
-                <button
-                  onClick={() => setView("map")}
-                  className={view === "map" ? "selected" : ""}
-                  aria-label="地图视图"
-                  aria-pressed={view === "map"}
-                >
-                  <MapIcon size={16} />
-                  <span>地图</span>
-                </button>
+            <AuthForm
+              onSuccess={signedIn}
+              registrationOpen={registrationOpen}
+            />
+          </section>
+        ) : (
+          <section className="journal-section">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">
+                  {recipe ? "FROM MY LITTLE KITCHEN" : "MY TASTY COLLECTION"}
+                </span>
+                <h2>
+                  {recipe
+                    ? "我的菜单"
+                    : view === "map"
+                      ? "探店地图"
+                      : "探店手帖"}
+                  <span>{source.length}</span>
+                </h2>
+              </div>
+              <div className="section-actions">
+                {scope === "mine" && (
+                  <button
+                    className="icon-button export-button"
+                    onClick={exportDiary}
+                    disabled={!source.length}
+                    title="导出文字与坐标"
+                    aria-label="导出日记"
+                  >
+                    <Download size={17} />
+                  </button>
+                )}
+                {!recipe && (
+                  <div className="view-switch" aria-label="浏览方式">
+                    <button
+                      className={view === "journal" ? "selected" : ""}
+                      aria-label="卡片视图"
+                      aria-pressed={view === "journal"}
+                      onClick={() => setView("journal")}
+                    >
+                      <LayoutGrid size={16} />
+                      <span>手帖</span>
+                    </button>
+                    <button
+                      className={view === "map" ? "selected" : ""}
+                      aria-label="地图视图"
+                      aria-pressed={view === "map"}
+                      onClick={() => setView("map")}
+                    >
+                      <MapIcon size={16} />
+                      <span>地图</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-          {demo && (
-            <div className="demo-banner">
-              <Sparkles size={16} />
-              <span>你正在浏览示例日记，内容不会保存到你的账户。</span>
-              <button onClick={() => setDemo(false)}>
-                回到我的日记 <X size={14} />
-              </button>
-            </div>
-          )}
-          <div className="collection-toolbar">
-            <div className="search-box">
-              <Search size={17} />
-              <input
-                aria-label="搜索日记"
-                placeholder="找一家店，或一种味道…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              {query && (
-                <button aria-label="清空搜索" onClick={() => setQuery("")}>
-                  <X size={15} />
+            {demo && (
+              <div className="demo-banner">
+                <Sparkles size={16} />
+                <span>
+                  你正在浏览示例{recipe ? "菜谱" : "日记"}
+                  ，内容不会保存到你的账户。
+                </span>
+                <button onClick={() => setDemo(false)}>
+                  回到真实记录 <X size={14} />
                 </button>
-              )}
-            </div>
-            <button
-              className={`favorites-filter ${favorites ? "selected" : ""}`}
-              aria-pressed={favorites}
-              onClick={() => setFavorites(!favorites)}
-            >
-              <Heart size={15} fill={favorites ? "currentColor" : "none"} />
-              <span>只看心头好</span>
-            </button>
-            <label className="sort-select">
-              <ArrowDownUp size={14} />
-              <select
-                aria-label="日记排序"
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-              >
-                <option value="date">最近到店</option>
-                <option value="rating">评分优先</option>
-              </select>
-            </label>
-          </div>
-          <div className="category-tabs" role="group" aria-label="料理分类">
-            {["全部", ...CUISINES].map((c) => (
-              <button
-                key={c}
-                className={category === c ? "active" : ""}
-                aria-pressed={category === c}
-                onClick={() => setCategory(c)}
-              >
-                {c === "全部" ? (
-                  <Utensils size={14} />
-                ) : (
-                  <span>{icons[c]}</span>
+              </div>
+            )}
+            <div className="collection-toolbar">
+              <div className="search-box">
+                <Search size={17} />
+                <input
+                  aria-label="搜索日记"
+                  placeholder={
+                    recipe ? "找一道菜，或一种食材…" : "找一家店，或一种味道…"
+                  }
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                  <button aria-label="清空搜索" onClick={() => setQuery("")}>
+                    <X size={15} />
+                  </button>
                 )}
-                {c}
+              </div>
+              <button
+                className={`favorites-filter ${favorites ? "selected" : ""}`}
+                aria-pressed={favorites}
+                onClick={() => setFavorites(!favorites)}
+              >
+                <Heart size={15} fill={favorites ? "currentColor" : "none"} />
+                只看心头好
               </button>
-            ))}
-          </div>
-          {error && (
-            <div className="error-banner" role="alert">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-              <button className="text-button" onClick={loadEntries}>
-                重试
-              </button>
+              {scope === "mine" && (
+                <label className="visibility-filter">
+                  <select
+                    aria-label="可见范围筛选"
+                    onChange={(e) => {
+                      setQuery("");
+                      const next = e.target.value;
+                      setPrivacy(next);
+                    }}
+                    value={privacy}
+                  >
+                    <option value="all">全部可见范围</option>
+                    <option value="private">私人收藏</option>
+                    <option value="public">公开分享</option>
+                  </select>
+                </label>
+              )}
+              <label className="sort-select">
+                <ArrowDownUp size={14} />
+                <select
+                  aria-label="日记排序"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                >
+                  <option value="date">
+                    {recipe ? "最近下厨" : "最近到店"}
+                  </option>
+                  <option value="rating">评分优先</option>
+                </select>
+              </label>
             </div>
-          )}
-          {dataLoading && !demo ? (
-            <div className="loading-state">
-              <LoaderCircle className="spin" />
-              <p>正在翻开你的日记…</p>
+            <div className="category-tabs" role="group" aria-label="料理分类">
+              {["全部", ...CUISINES].map((c) => (
+                <button
+                  key={c}
+                  className={category === c ? "active" : ""}
+                  aria-pressed={category === c}
+                  onClick={() => setCategory(c)}
+                >
+                  {c === "全部" ? (
+                    <Utensils size={14} />
+                  ) : (
+                    <span>{icons[c]}</span>
+                  )}
+                  {c}
+                </button>
+              ))}
             </div>
-          ) : view === "map" ? (
-            <div className="map-layout">
-              <div className="map-sidebar">
-                <div className="map-list-heading">
-                  <strong>地图上的美味</strong>
-                  <span>{filtered.length} 家店</span>
-                </div>
-                {filtered.length ? (
-                  filtered.map((e) => (
+            {error && (
+              <div className="error-banner" role="alert">
+                <AlertCircle size={18} />
+                <span>{error}</span>
+                <button className="text-button" onClick={loadEntries}>
+                  重试
+                </button>
+              </div>
+            )}
+            {loading && !demo ? (
+              <div className="loading-state">
+                <LoaderCircle className="spin" />
+                <p>正在翻开美味记忆…</p>
+              </div>
+            ) : view === "map" && !recipe ? (
+              <div className="map-layout">
+                <aside className="map-sidebar">
+                  <div className="map-list-heading">
+                    <strong>地图上的美味</strong>
+                    <span>{filtered.length} 家店</span>
+                  </div>
+                  {filtered.map((e) => (
                     <button
-                      className={`map-list-item ${selected?.id === e.id ? "selected" : ""}`}
+                      className="map-list-item"
                       key={e.id}
                       onClick={() => {
-                        setMapFocus({ lat: e.lat, lng: e.lng });
+                        setFocus({ lat: e.lat, lng: e.lng });
                         setSelected(e);
                       }}
                     >
-                      <FoodCover entry={e} small />
+                      <span className="map-list-emoji">
+                        {icons[e.cuisine] || "🍽️"}
+                      </span>
                       <div>
                         <strong>{e.name}</strong>
                         <span>
-                          {e.city || "已标记位置"} · {e.cuisine}
+                          {e.city || e.cuisine} · {e.authorName}
                         </span>
-                        <Stars rating={e.rating} />
+                        <span>★ {e.rating.toFixed(1)}</span>
                       </div>
-                      <ChevronRight size={16} />
                     </button>
-                  ))
+                  ))}
+                  {!filtered.length && (
+                    <div className="map-empty">
+                      <MapPin size={26} />
+                      <p>这里还没有记录</p>
+                      <span>点击地图，开始你的美食足迹。</span>
+                    </div>
+                  )}
+                  <div className="map-list-tip">
+                    <MapPin size={14} />
+                    点击空白位置，记下新发现。
+                  </div>
+                </aside>
+                <div className="main-map">
+                  <MapView
+                    entries={filtered}
+                    selectedId={selected?.id}
+                    focus={focus}
+                    provider={provider}
+                    onProviderChange={changeProvider}
+                    onSelect={(id) =>
+                      setSelected(filtered.find((e) => e.id === id) || null)
+                    }
+                    pickMode
+                    onPick={newEntry}
+                  />
+                </div>
+              </div>
+            ) : filtered.length ? (
+              <div className="entries-grid">
+                {filtered.map((e) => (
+                  <EntryCard
+                    key={e.id}
+                    entry={e}
+                    onOpen={() => setSelected(e)}
+                    onLocate={() => locate(e)}
+                  />
+                ))}
+                <button className="add-card" onClick={() => newEntry()}>
+                  <span>
+                    <Plus size={25} />
+                  </span>
+                  <strong>
+                    {recipe ? "今天，想做点什么？" : "下一站，吃什么？"}
+                  </strong>
+                  <p>
+                    {recipe
+                      ? "把厨房里的小幸福，也记下来。"
+                      : "把新的美味，也记在这里。"}
+                  </p>
+                  <span className="add-card-action">
+                    {recipe ? "记录一道菜" : "写一篇日记"}{" "}
+                    <ArrowRight size={14} />
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-illustration">
+                  {recipe ? (
+                    <ChefHat size={44} strokeWidth={1.2} />
+                  ) : (
+                    <BookOpen size={43} strokeWidth={1.2} />
+                  )}
+                  <span>✳</span>
+                </div>
+                <span className="eyebrow">
+                  {recipe
+                    ? "A LITTLE KITCHEN, A LOT OF LOVE"
+                    : "A BLANK PAGE, A NEW TASTE"}
+                </span>
+                <h3>
+                  {source.length
+                    ? "还没找到这份美味"
+                    : recipe
+                      ? "你的拿手菜，值得被记住。"
+                      : scope === "public"
+                        ? "美味广场，等你来开席。"
+                        : "第一口心动，从这里开始。"}
+                </h3>
+                <p>
+                  {source.length
+                    ? "换个关键词或分类，再找找看。"
+                    : recipe
+                      ? "写下食材与做法，拍下出锅的瞬间。"
+                      : "记录喜欢的小店，让美好的味道有迹可循。"}
+                </p>
+                {source.length ? (
+                  <button className="button secondary" onClick={filtersReset}>
+                    清除筛选
+                  </button>
                 ) : (
-                  <div className="map-empty">
-                    <MapPin size={26} />
-                    <p>这里还没有记录</p>
-                    <span>点击地图，开始你的美食足迹。</span>
+                  <div className="empty-actions">
+                    <button
+                      className="button primary"
+                      onClick={() => newEntry()}
+                    >
+                      <Plus size={17} />
+                      {recipe ? "写下第一道菜" : "写下第一篇日记"}
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => setDemo(true)}
+                    >
+                      先看看示例 <ArrowRight size={14} />
+                    </button>
                   </div>
                 )}
-                <div className="map-list-tip">
-                  <MapPin size={14} />
-                  点击地图空白处，可以记录一家新店。
-                </div>
               </div>
-              <div className="main-map">
-                <MapView
-                  entries={filtered}
-                  selectedId={selected?.id}
-                  focus={mapFocus}
-                  provider={provider}
-                  onProviderChange={changeProvider}
-                  onSelect={(id) =>
-                    setSelected(filtered.find((e) => e.id === id) || null)
-                  }
-                  pickMode
-                  onPick={(p) => newEntry(p)}
-                />
-              </div>
+            )}
+            <div className="collection-bottom">
+              <span>
+                {filtered.length
+                  ? `已经翻完 ${filtered.length} 份美味记忆`
+                  : "等一顿好饭，也等一个好故事"}
+              </span>
+              <span>生活的滋味，要慢慢尝。</span>
             </div>
-          ) : filtered.length ? (
-            <div className="entries-grid">
-              {filtered.map((e) => (
-                <EntryCard
-                  key={e.id}
-                  entry={e}
-                  onOpen={() => setSelected(e)}
-                  onLocate={() => locate(e)}
-                />
-              ))}
-              <button className="add-card" onClick={() => newEntry()}>
-                <span>
-                  <Plus size={25} />
-                </span>
-                <strong>下一站，吃什么？</strong>
-                <p>把新的美味，也记在这里。</p>
-                <span className="add-card-action">
-                  写一篇日记 <ArrowRight size={14} />
-                </span>
-              </button>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-illustration">
-                <BookOpen size={43} strokeWidth={1.2} />
-                <span>✳</span>
-                <Coffee size={21} />
-              </div>
-              <span className="eyebrow">A BLANK PAGE, A NEW TASTE</span>
-              <h3>
-                {source.length
-                  ? "还没找到这份美味"
-                  : "第一口心动，从这里开始。"}
-              </h3>
-              <p>
-                {source.length
-                  ? "换个关键词或分类，再找找看。"
-                  : "记下喜欢的店、拍下好吃的菜，\n让美好的味道，有迹可循。"}
-              </p>
-              {source.length ? (
-                <button
-                  className="button secondary"
-                  onClick={() => {
-                    setQuery("");
-                    setCategory("全部");
-                    setFavorites(false);
-                  }}
-                >
-                  清除筛选
-                </button>
-              ) : (
-                <div className="empty-actions">
-                  <button className="button primary" onClick={() => newEntry()}>
-                    <Plus size={17} />
-                    写下第一篇日记
-                  </button>
-                  <button className="text-button" onClick={() => setDemo(true)}>
-                    先看看示例
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          <div className="collection-bottom">
-            <span>
-              {filtered.length > 0
-                ? `已经翻完 ${filtered.length} 份美味记忆`
-                : "等一顿好饭，也等一个好故事"}
-            </span>
-            <span>生活的滋味，要慢慢尝。</span>
-          </div>
-        </section>
+          </section>
+        )}
         <section className="bottom-note">
           <span>“</span>
           <p>
-            不必每一餐都盛大，
+            在外寻味，也在家寻常。
             <br />
-            <strong>但每一餐，都可以被好好记住。</strong>
+            <strong>每一餐，都可以被好好记住。</strong>
           </p>
           <div>
             WITH LOVE & A GOOD APPETITE
@@ -1003,19 +864,23 @@ export default function Diary() {
       </main>
       <footer className="site-footer">
         <span>
-          <b>tabeLog</b> · 美食日记
+          <b>tabeLog</b> · 一餐一记
         </span>
-        <span>把日子过成喜欢的味道。</span>
+        <span>探店的惊喜，厨房的烟火。</span>
         <span>
           <LockKeyhole size={12} />
-          {session?.local
-            ? "本地存储 · 仅当前开发环境"
-            : "私人日记 · Cloudflare 安全存储"}
+          私人收藏 · 自在分享
         </span>
       </footer>
-      {formOpen && (
+      {authOpen && (
+        <Modal title="我的美味账户" onClose={() => setAuthOpen(false)}>
+          <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />
+        </Modal>
+      )}
+      {formOpen && user && (
         <EntryForm
           entry={editing}
+          kind={kind}
           initialLocation={initialLocation}
           provider={provider}
           onProviderChange={changeProvider}
@@ -1031,6 +896,7 @@ export default function Diary() {
           key={selected.id}
           entry={selected}
           demo={demo}
+          canEdit={!demo && selected.ownerId === user?.id}
           onClose={() => setSelected(null)}
           onEdit={() => {
             setEditing(selected);

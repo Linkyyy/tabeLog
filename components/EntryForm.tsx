@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Modal from "./Modal";
+import VisibilityPicker from "./VisibilityPicker";
 import {
   CUISINES,
   type Entry,
@@ -28,6 +29,7 @@ function today() {
 }
 export default function EntryForm({
   entry,
+  kind = "visit",
   initialLocation,
   onClose,
   onSaved,
@@ -35,6 +37,7 @@ export default function EntryForm({
   onProviderChange,
 }: {
   entry?: Entry;
+  kind?: Entry["kind"];
   initialLocation?: Location;
   onClose: () => void;
   onSaved: (entry: Entry) => void;
@@ -45,6 +48,18 @@ export default function EntryForm({
     entry
       ? { ...entry, keepPhotoIds: entry.photos.map((p) => p.id) }
       : {
+          kind,
+          visibility: "private",
+          recipe:
+            kind === "recipe"
+              ? {
+                  ingredients: "",
+                  steps: "",
+                  minutes: null,
+                  servings: 2,
+                  difficulty: "简单",
+                }
+              : undefined,
           name: initialLocation?.name || "",
           address: initialLocation?.address || "",
           city: initialLocation?.city || "",
@@ -60,6 +75,7 @@ export default function EntryForm({
           keepPhotoIds: [],
         },
   );
+  const isRecipe = form.kind === "recipe";
   const [located, setLocated] = useState(!!entry || !!initialLocation),
     [focus, setFocus] = useState<Location | null>(
       entry || initialLocation || null,
@@ -135,7 +151,7 @@ export default function EntryForm({
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!located) {
+    if (!isRecipe && !located) {
       setError("请先点击地图，或输入经纬度，确认店铺位置");
       return;
     }
@@ -162,76 +178,92 @@ export default function EntryForm({
   }
   return (
     <Modal
-      title={entry ? "编辑这份美味" : "记下这一口"}
+      title={
+        entry
+          ? "编辑这份美味"
+          : kind === "recipe"
+            ? "今天，我掌勺"
+            : "记下这一口"
+      }
       wide
       onClose={() => {
         if (!saving) close();
       }}
     >
       <form onSubmit={submit} className="entry-form">
-        <div className="form-map">
-          <MapView
-            entries={
-              located
-                ? [
-                    {
-                      id: "draft",
-                      name: form.name || "店铺位置",
-                      lat: form.lat,
-                      lng: form.lng,
-                      rating: form.rating,
-                    },
-                  ]
-                : []
-            }
-            selectedId="draft"
-            focus={focus}
-            provider={provider}
-            onProviderChange={onProviderChange}
-            pickMode
-            onPick={pick}
-          />
-        </div>
+        {!isRecipe && (
+          <div className="form-map">
+            <MapView
+              entries={
+                located
+                  ? [
+                      {
+                        id: "draft",
+                        name: form.name || "店铺位置",
+                        lat: form.lat,
+                        lng: form.lng,
+                        rating: form.rating,
+                      },
+                    ]
+                  : []
+              }
+              selectedId="draft"
+              focus={focus}
+              provider={provider}
+              onProviderChange={onProviderChange}
+              pickMode
+              onPick={pick}
+            />
+          </div>
+        )}
         <div className="form-content">
           <div className="form-section-title">
             <span>01</span>
-            <h3>在哪里吃到了美味？</h3>
-            <small>{located ? "位置已选择" : "请先在地图选点"}</small>
+            <h3>{isRecipe ? "今天做了什么好吃的？" : "在哪里吃到了美味？"}</h3>
+            {!isRecipe && (
+              <small>{located ? "位置已选择" : "请先在地图选点"}</small>
+            )}
           </div>
           <div className="form-grid">
             <label className="span-2">
-              店铺名称 <b>*</b>
+              {isRecipe ? "菜名" : "店铺名称"} <b>*</b>
               <input
                 autoComplete="off"
                 name="name"
                 required
                 maxLength={100}
-                placeholder="每一家小店，都值得被记住"
+                placeholder={
+                  isRecipe ? "例如：番茄炖牛腩" : "每一家小店，都值得被记住"
+                }
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
               />
             </label>
-            <label className="span-2">
-              详细地址
-              <input
-                name="address"
-                maxLength={300}
-                placeholder="街道、门牌号，或让地图搜索帮你填写"
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-              />
-            </label>
-            <label>
-              城市
-              <input
-                name="city"
-                maxLength={80}
-                placeholder="例如：上海"
-                value={form.city}
-                onChange={(e) => set("city", e.target.value)}
-              />
-            </label>
-            <label>
+            {!isRecipe && (
+              <>
+                <label className="span-2">
+                  详细地址
+                  <input
+                    name="address"
+                    maxLength={300}
+                    placeholder="街道、门牌号，或让地图搜索帮你填写"
+                    value={form.address}
+                    onChange={(e) => set("address", e.target.value)}
+                  />
+                </label>
+                <label>
+                  城市
+                  <input
+                    name="city"
+                    maxLength={80}
+                    placeholder="例如：上海"
+                    value={form.city}
+                    onChange={(e) => set("city", e.target.value)}
+                  />
+                </label>
+              </>
+            )}
+            <label className={isRecipe ? "span-2" : ""}>
               料理分类
               <select
                 value={form.cuisine}
@@ -243,56 +275,152 @@ export default function EntryForm({
               </select>
             </label>
           </div>
-          <details className="coordinate-details">
-            <summary>
-              <MapPin size={13} />
-              精确位置 · WGS-84{" "}
-              {located
-                ? `${form.lat.toFixed(5)}, ${form.lng.toFixed(5)}`
-                : "未选择"}
-            </summary>
-            <div className="form-grid">
-              <label>
-                纬度
-                <input
-                  aria-label="纬度"
-                  type="number"
-                  step="any"
-                  min="-90"
-                  max="90"
-                  value={form.lat}
-                  onChange={(e) => {
-                    set("lat", Number(e.target.value));
-                    setLocated(true);
-                  }}
-                />
-              </label>
-              <label>
-                经度
-                <input
-                  aria-label="经度"
-                  type="number"
-                  step="any"
-                  min="-180"
-                  max="180"
-                  value={form.lng}
-                  onChange={(e) => {
-                    set("lng", Number(e.target.value));
-                    setLocated(true);
-                  }}
-                />
-              </label>
-            </div>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setFocus({ lat: form.lat, lng: form.lng })}
-            >
-              在地图中查看 <ArrowRight size={13} />
-            </button>
-          </details>
+          {!isRecipe && (
+            <details className="coordinate-details">
+              <summary>
+                <MapPin size={13} />
+                精确位置 · WGS-84{" "}
+                {located
+                  ? `${form.lat.toFixed(5)}, ${form.lng.toFixed(5)}`
+                  : "未选择"}
+              </summary>
+              <div className="form-grid">
+                <label>
+                  纬度
+                  <input
+                    aria-label="纬度"
+                    type="number"
+                    step="any"
+                    min="-90"
+                    max="90"
+                    value={form.lat}
+                    onChange={(e) => {
+                      set("lat", Number(e.target.value));
+                      setLocated(true);
+                    }}
+                  />
+                </label>
+                <label>
+                  经度
+                  <input
+                    aria-label="经度"
+                    type="number"
+                    step="any"
+                    min="-180"
+                    max="180"
+                    value={form.lng}
+                    onChange={(e) => {
+                      set("lng", Number(e.target.value));
+                      setLocated(true);
+                    }}
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setFocus({ lat: form.lat, lng: form.lng })}
+              >
+                在地图中查看 <ArrowRight size={13} />
+              </button>
+            </details>
+          )}
+          {isRecipe && form.recipe && (
+            <section className="recipe-fields">
+              <div className="form-section-title">
+                <span>02</span>
+                <h3>把你的拿手做法留下来</h3>
+              </div>
+              <div className="recipe-meta-fields">
+                <label>
+                  用时（分钟）
+                  <input
+                    type="number"
+                    min="1"
+                    max="1440"
+                    placeholder="选填"
+                    value={form.recipe.minutes ?? ""}
+                    onChange={(e) =>
+                      set("recipe", {
+                        ...form.recipe!,
+                        minutes: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  份量（人份）
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    required
+                    value={form.recipe.servings}
+                    onChange={(e) =>
+                      set("recipe", {
+                        ...form.recipe!,
+                        servings: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  难度
+                  <select
+                    value={form.recipe.difficulty}
+                    onChange={(e) =>
+                      set("recipe", {
+                        ...form.recipe!,
+                        difficulty: e.target.value as "简单" | "进阶" | "挑战",
+                      })
+                    }
+                  >
+                    <option>简单</option>
+                    <option>进阶</option>
+                    <option>挑战</option>
+                  </select>
+                </label>
+              </div>
+              <div className="form-grid">
+                <label className="span-2">
+                  食材与用量 <b>*</b>
+                  <textarea
+                    name="ingredients"
+                    required
+                    maxLength={5000}
+                    rows={4}
+                    placeholder={"牛腩 500 克\n番茄 2 个\n生姜 3 片"}
+                    value={form.recipe.ingredients}
+                    onChange={(e) =>
+                      set("recipe", {
+                        ...form.recipe!,
+                        ingredients: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="span-2">
+                  做法步骤 <b>*</b>
+                  <textarea
+                    name="steps"
+                    required
+                    maxLength={10000}
+                    rows={6}
+                    placeholder={
+                      "1. 牛腩切块，冷水下锅焯去浮沫。\n2. 番茄炒出汁，加入牛腩。\n3. 小火慢炖至软烂，调味出锅。"
+                    }
+                    value={form.recipe.steps}
+                    onChange={(e) =>
+                      set("recipe", { ...form.recipe!, steps: e.target.value })
+                    }
+                  />
+                  <small>每行写一个步骤，照片可以在下方上传。</small>
+                </label>
+              </div>
+            </section>
+          )}
           <div className="form-section-title">
-            <span>02</span>
+            <span>{isRecipe ? "03" : "02"}</span>
             <h3>这一餐，感觉如何？</h3>
           </div>
           <div className="rating-picker">
@@ -341,7 +469,7 @@ export default function EntryForm({
           </div>
           <div className="form-grid">
             <label>
-              到店日期 <b>*</b>
+              {isRecipe ? "下厨日期" : "到店日期"} <b>*</b>
               <input
                 type="date"
                 name="visitedAt"
@@ -351,37 +479,39 @@ export default function EntryForm({
                 onChange={(e) => set("visitedAt", e.target.value)}
               />
             </label>
-            <label>
-              人均消费
-              <div className="price-field">
-                <select
-                  aria-label="消费币种"
-                  value={form.currency}
-                  onChange={(e) =>
-                    set("currency", e.target.value as EntryInput["currency"])
-                  }
-                >
-                  <option value="CNY">CNY ¥</option>
-                  <option value="JPY">JPY ¥</option>
-                  <option value="USD">USD $</option>
-                </select>
-                <input
-                  aria-label="人均消费"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="1000000"
-                  placeholder="选填"
-                  value={form.price ?? ""}
-                  onChange={(e) =>
-                    set(
-                      "price",
-                      e.target.value === "" ? null : Number(e.target.value),
-                    )
-                  }
-                />
-              </div>
-            </label>
+            {!isRecipe && (
+              <label>
+                人均消费
+                <div className="price-field">
+                  <select
+                    aria-label="消费币种"
+                    value={form.currency}
+                    onChange={(e) =>
+                      set("currency", e.target.value as EntryInput["currency"])
+                    }
+                  >
+                    <option value="CNY">CNY ¥</option>
+                    <option value="JPY">JPY ¥</option>
+                    <option value="USD">USD $</option>
+                  </select>
+                  <input
+                    aria-label="人均消费"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1000000"
+                    placeholder="选填"
+                    value={form.price ?? ""}
+                    onChange={(e) =>
+                      set(
+                        "price",
+                        e.target.value === "" ? null : Number(e.target.value),
+                      )
+                    }
+                  />
+                </div>
+              </label>
+            )}
             <label className="span-2">
               写给这顿饭的几句话
               <textarea
@@ -397,6 +527,10 @@ export default function EntryForm({
               </span>
             </label>
           </div>
+          <VisibilityPicker
+            value={form.visibility}
+            onChange={(v) => set("visibility", v)}
+          />
           <div className="photo-heading">
             <span className="field-label">用照片留住美味</span>
             <small>最多 6 张 · JPG / PNG / WebP · 单张 5 MB</small>

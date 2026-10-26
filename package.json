@@ -1,6 +1,6 @@
 {
   "name": "tabelog-diary",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
-    "cloudflare:init": "node --env-file-if-exists=.env.local scripts/cloudflare-init.mjs"
+    "cloudflare:init": "node --env-file-if-exists=.env.local scripts/cloudflare-init.mjs",
+    "data:claim": "node --env-file-if-exists=.env.local scripts/claim-legacy.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.900.0",
