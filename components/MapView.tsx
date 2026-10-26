@@ -61,7 +61,8 @@ function label(pin: Pin, selected: boolean) {
   const el = document.createElement("button");
   el.type = "button";
   el.className = `map-pin ${selected ? "active" : ""}`;
-  el.setAttribute("aria-label", pin.name);
+  el.setAttribute("aria-label", `地图店铺：${pin.name}`);
+  el.setAttribute("aria-pressed", String(selected));
   el.textContent = pin.rating ? "★ " + pin.rating : "●";
   return el;
 }
@@ -136,7 +137,7 @@ export default function MapView(props: Props) {
                   iconSize: [54, 40],
                   iconAnchor: [27, 40],
                 }),
-                title: pin.name,
+                title: `地图店铺：${pin.name}`,
                 keyboard: true,
               }).addTo(layer);
               marker.on("click", () => latest.current.onSelect?.(pin.id));
@@ -187,7 +188,7 @@ export default function MapView(props: Props) {
               const m = new g.maps.Marker({
                 position: { lat: pin.lat, lng: pin.lng },
                 map,
-                title: pin.name,
+                title: `地图店铺：${pin.name}`,
                 label: {
                   text: `★ ${pin.rating}`,
                   color: pin.id === selected ? "#ffffff" : "#302c26",
@@ -261,7 +262,7 @@ export default function MapView(props: Props) {
                 position: [x, y],
                 content: label(pin, pin.id === selected),
                 offset: new A.Pixel(-27, -40),
-                title: pin.name,
+                title: `地图店铺：${pin.name}`,
               });
               m.on("click", () => latest.current.onSelect?.(pin.id));
               return m;

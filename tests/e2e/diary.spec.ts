@@ -36,8 +36,13 @@ test("two modules, real registration/login, restaurant map and private illustrat
     page.getByRole("heading", { name: "第一口心动，从这里开始。" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "写下第一篇日记" }).click();
-  await expect(page.locator(".leaflet-container")).toBeVisible();
-  await page.getByLabel("美食足迹地图").click({ position: { x: 180, y: 150 } });
+  await expect(
+    page.getByRole("dialog").locator(".leaflet-container"),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByLabel("美食足迹地图")
+    .click({ position: { x: 180, y: 150 } });
   await page.getByLabel("店铺名称").fill("旬味食堂");
   await page.getByLabel("城市", { exact: true }).fill("上海");
   await page.getByLabel("详细地址").fill("上海市武康路");
@@ -311,4 +316,157 @@ test("responsive module previews and login prompt without polluting real records
   await page.getByRole("button", { name: "回到真实记录", exact: true }).click();
   await page.getByRole("button", { name: "我的空间", exact: false }).click();
   await expect(page.getByLabel("邮箱", { exact: true })).toBeVisible();
+});
+
+test("mobile ordering keeps quantities through filters and module switches; exports the chosen recipes", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/tile\.openstreetmap\.org/, (r) => r.abort());
+  await page.goto("/");
+  await page.getByRole("button", { name: "我的菜单", exact: true }).click();
+  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  const beef = page.getByRole("article", {
+    name: "菜品 番茄慢炖牛腩",
+    exact: true,
+  });
+  await beef
+    .getByRole("button", { name: "加入菜单 番茄慢炖牛腩", exact: true })
+    .click();
+  await beef
+    .getByRole("button", { name: "增加一份 番茄慢炖牛腩", exact: true })
+    .click();
+  await page
+    .getByRole("complementary", { name: "菜品分类" })
+    .getByRole("button", { name: /甜点/ })
+    .click();
+  await expect(beef).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "加入菜单 抹茶巴斯克", exact: true })
+    .click();
+  await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
+    "已选 2 道菜，共 3 份",
+  );
+  await page.getByLabel("搜索日记").fill("不存在的甜点");
+  await expect(
+    page.getByRole("heading", { name: "还没找到这份美味" }),
+  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
+    "共 3 份",
+  );
+  await page.getByRole("button", { name: "清除筛选" }).click();
+  await page.getByRole("button", { name: "查看菜单", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("番茄慢炖牛腩");
+  await expect(dialog).toContainText("抹茶巴斯克");
+  await expect(dialog).not.toContainText("一人份的日式咖喱");
+  await dialog
+    .getByRole("button", { name: "减少一份 番茄慢炖牛腩", exact: true })
+    .click();
+  const download = page.waitForEvent("download");
+  await dialog
+    .getByRole("button", { name: "导出备菜清单", exact: true })
+    .click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^tabelog-menu-/);
+  const { readFile } = await import("node:fs/promises");
+  const text = await readFile((await file.path())!, "utf8");
+  expect(text).toContain("番茄慢炖牛腩 × 1 份");
+  expect(text).toContain("牛腩 500 克");
+  expect(text).not.toContain("一人份的日式咖喱");
+  await dialog.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByRole("button", { name: "探店日记", exact: true }).click();
+  await expect(page.getByRole("region", { name: "店铺地图" })).toBeVisible();
+  await page.getByRole("button", { name: "我的菜单", exact: true }).click();
+  await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
+    "已选 2 道菜，共 2 份",
+  );
+  await page.getByRole("button", { name: "查看菜单", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "清空", exact: true })
+    .click();
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "查看菜单", exact: true }),
+  ).toBeDisabled();
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBeTruthy();
+  }
+});
+
+test("map is above the list on phone and desktop; markers and store rows select each other", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/tile\.openstreetmap\.org/, (r) => r.abort());
+  await page.goto("/");
+  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  const map = page.getByRole("region", { name: "店铺地图" });
+  const list = page.getByLabel("店铺列表", { exact: true });
+  await expect(map.locator(".leaflet-container")).toBeVisible();
+  let mapBox = await map.boundingBox(),
+    listBox = await list.boundingBox();
+  expect(mapBox!.y + mapBox!.height).toBeLessThan(listBox!.y);
+  await map.locator("button.map-pin").filter({ hasText: "5" }).first().click();
+  await expect(
+    page.getByRole("article", { name: "店铺 巷口的面包房", exact: true }),
+  ).toHaveAttribute("data-selected", "true");
+  const second = page.getByRole("article", {
+    name: "店铺 山野食堂",
+    exact: true,
+  });
+  await second
+    .getByRole("button", { name: "地图定位 山野食堂", exact: true })
+    .click();
+  await expect(second).toHaveAttribute("data-selected", "true");
+  await expect(
+    map.locator('button.map-pin[aria-label="地图店铺：山野食堂"]'),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    map.getByRole("button", { name: "查看选中店铺 山野食堂", exact: true }),
+  ).toBeVisible();
+  await map
+    .getByRole("button", { name: "查看选中店铺 山野食堂", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("山野食堂");
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByLabel("地图服务").selectOption("google");
+  await expect(
+    map.getByRole("status").filter({ hasText: "尚未配置密钥" }),
+  ).toBeVisible();
+  await map
+    .getByRole("button", { name: "使用 OpenStreetMap", exact: true })
+    .click();
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  mapBox = await map.boundingBox();
+  listBox = await list.boundingBox();
+  expect(mapBox!.y + mapBox!.height).toBeLessThan(listBox!.y);
+  const rows = list.getByRole("article");
+  const first = await rows.nth(0).boundingBox(),
+    next = await rows.nth(1).boundingBox();
+  expect(Math.abs(first!.y - next!.y)).toBeLessThan(2);
+  expect(next!.x).toBeGreaterThan(first!.x);
+  await page.getByRole("button", { name: "我的菜单", exact: true }).click();
+  await page
+    .getByRole("article", { name: "菜品 番茄慢炖牛腩", exact: true })
+    .getByRole("button", { name: "加入菜单 番茄慢炖牛腩", exact: true })
+    .click();
+  await expect(
+    page.getByRole("complementary", { name: "今日已选菜单" }),
+  ).toContainText("番茄慢炖牛腩");
+  await expect(
+    page
+      .getByRole("complementary", { name: "今日已选菜单" })
+      .getByRole("button", { name: "导出备菜清单", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "已选菜单" }),
+  ).not.toBeVisible();
 });

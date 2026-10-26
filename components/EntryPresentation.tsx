@@ -40,7 +40,7 @@ export function Logo() {
     </a>
   );
 }
-function Stars({ rating }: { rating: number }) {
+export function Stars({ rating }: { rating: number }) {
   return (
     <span className="stars" aria-label={`${rating} 星`}>
       {[1, 2, 3, 4, 5].map((n) => (
@@ -55,7 +55,7 @@ function Stars({ rating }: { rating: number }) {
     </span>
   );
 }
-function FoodCover({
+export function FoodCover({
   entry,
   small = false,
 }: {
