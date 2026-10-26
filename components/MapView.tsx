@@ -14,6 +14,7 @@ type Adapter = {
   destroy: () => void;
   pins: (items: Pin[], selected?: string) => void;
   focus: (point: Location) => void;
+  fit?: (items: Pin[]) => void;
   search?: (term: string) => Promise<Location[]>;
 };
 type Props = {
@@ -25,6 +26,8 @@ type Props = {
   pickMode?: boolean;
   onPick?: (p: Location) => void;
   focus?: Location | null;
+  topInset?: number;
+  bottomInset?: number;
 };
 const keys = {
   google: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
@@ -126,7 +129,28 @@ export default function MapView(props: Props) {
             observer.disconnect();
             map.remove();
           },
-          focus: (p) => map.flyTo([p.lat, p.lng], 15, { duration: 0.5 }),
+          focus: (p) =>
+            map.flyToBounds(
+              [
+                [p.lat, p.lng],
+                [p.lat, p.lng],
+              ],
+              {
+                maxZoom: 15,
+                paddingTopLeft: [24, (latest.current.topInset || 0) + 24],
+                paddingBottomRight: [
+                  24,
+                  (latest.current.bottomInset || 0) + 24,
+                ],
+                duration: 0.45,
+              },
+            ),
+          fit: (items) =>
+            map.fitBounds(L.latLngBounds(items.map((p) => [p.lat, p.lng])), {
+              maxZoom: 14,
+              paddingTopLeft: [24, (latest.current.topInset || 0) + 24],
+              paddingBottomRight: [24, (latest.current.bottomInset || 0) + 24],
+            }),
           pins: (items, selected) => {
             layer.clearLayers();
             for (const pin of items) {
@@ -144,11 +168,6 @@ export default function MapView(props: Props) {
             }
           },
         };
-        if (latest.current.entries.length > 1)
-          map.fitBounds(
-            L.latLngBounds(latest.current.entries.map((p) => [p.lat, p.lng])),
-            { padding: [70, 70], maxZoom: 14 },
-          );
       } else if (provider === "google") {
         await loadScript(
           "google-maps-sdk",
@@ -181,6 +200,22 @@ export default function MapView(props: Props) {
           focus: (p) => {
             map.panTo(p);
             map.setZoom(15);
+            map.panBy(
+              0,
+              ((latest.current.bottomInset || 0) -
+                (latest.current.topInset || 0)) /
+                2,
+            );
+          },
+          fit: (items) => {
+            const bounds = new g.maps.LatLngBounds();
+            items.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }));
+            map.fitBounds(bounds, {
+              top: (latest.current.topInset || 0) + 24,
+              bottom: (latest.current.bottomInset || 0) + 24,
+              left: 24,
+              right: 24,
+            });
           },
           pins: (items, selected) => {
             markers.forEach((m) => m.setMap(null));
@@ -253,6 +288,26 @@ export default function MapView(props: Props) {
           focus: (p) => {
             const [y, x] = wgsToGcj(p.lat, p.lng);
             map.setZoomAndCenter(15, [x, y]);
+            map.panBy(
+              0,
+              ((latest.current.topInset || 0) -
+                (latest.current.bottomInset || 0)) /
+                2,
+            );
+          },
+          fit: () => {
+            if (markers.length)
+              map.setFitView(
+                markers,
+                false,
+                [
+                  (latest.current.topInset || 0) + 24,
+                  24,
+                  (latest.current.bottomInset || 0) + 24,
+                  24,
+                ],
+                14,
+              );
           },
           pins: (items, selected) => {
             map.remove(markers);
@@ -331,8 +386,12 @@ export default function MapView(props: Props) {
     adapter?.pins(props.entries, props.selectedId);
   }, [adapter, props.entries, props.selectedId]);
   useEffect(() => {
+    if (!props.focus && props.entries.length && props.bottomInset !== undefined)
+      adapter?.fit?.(props.entries);
+  }, [adapter, props.entries, props.focus, props.topInset, props.bottomInset]);
+  useEffect(() => {
     if (props.focus) adapter?.focus(props.focus);
-  }, [adapter, props.focus]);
+  }, [adapter, props.focus, props.topInset, props.bottomInset]);
   async function search() {
     if (!adapter?.search || !term.trim()) return;
     setSearching(true);

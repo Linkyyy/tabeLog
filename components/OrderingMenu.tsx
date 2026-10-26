@@ -184,7 +184,6 @@ export default function OrderingMenu(props: Props) {
     <div className="ordering-menu">
       <div className="ordering-body">
         <aside className="menu-categories" aria-label="菜品分类">
-          <span className="category-rail-label">MENU</span>
           {["全部", ...CUISINES].map((c) => (
             <button
               key={c}
@@ -206,13 +205,6 @@ export default function OrderingMenu(props: Props) {
           ))}
         </aside>
         <div className="menu-items-column">
-          <div className="menu-list-title">
-            <h2>
-              {props.category === "全部" ? "今日有什么好吃的" : props.category}
-              <span>{props.items.length} 道</span>
-            </h2>
-            <span>点菜，也点一点好心情。</span>
-          </div>
           {props.loading ? (
             <div className="loading-state">正在翻开菜单…</div>
           ) : props.items.length ? (

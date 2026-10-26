@@ -103,3 +103,20 @@ test("recipes validate ingredients, steps and metadata; visibility defaults to p
   for (const patch of [{ visibility: "hidden" }, { kind: "oops" }])
     assert.throws(() => parseEntry({ ...valid, ...patch }));
 });
+import { sheetStops, nearestSheetSnap } from "../lib/sheet";
+test("sheet stops fit small and large viewports; drag distances snap predictably", () => {
+  assert.deepEqual(sheetStops(844), {
+    collapsed: 106,
+    half: 405,
+    expanded: 758,
+  });
+  assert.equal(nearestSheetSnap(720, 844), "expanded");
+  assert.equal(nearestSheetSnap(390, 844), "half");
+  assert.equal(nearestSheetSnap(115, 844), "collapsed");
+  for (const viewport of [320, 568, 844, 1000]) {
+    const s = sheetStops(viewport);
+    assert.ok(s.collapsed < s.half);
+    assert.ok(s.half <= s.expanded);
+    assert.ok(s.expanded < viewport);
+  }
+});
