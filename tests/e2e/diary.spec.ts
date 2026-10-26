@@ -526,3 +526,190 @@ test("touch swipes resize the sheet and recipe selection still exports a menu", 
     await context.close();
   }
 });
+
+test("all five themes switch in settings without losing menu state; saved appearance follows tabs, forms and reloads", async ({
+  page,
+  context,
+}) => {
+  await page.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
+  await page.getByLabel("更多操作", { exact: true }).click();
+  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  await page.getByRole("slider", { name: "清单抽屉高度" }).press("Home");
+  const map = page.locator(".workspace-map .leaflet-container");
+  await expect(page.getByRole("region", { name: "店铺抽屉" })).toHaveCSS(
+    "height",
+    "106px",
+  );
+  // Leaflet can retain old zoom levels when offline. Read the foreground layer,
+  // rather than mistaking a retained fallback tile for the current viewport.
+  const visibleTile = () =>
+    map.locator(".leaflet-tile-container").evaluateAll((layers) => {
+      const front = layers.toSorted(
+        (a, b) =>
+          Number(getComputedStyle(b).zIndex) -
+          Number(getComputedStyle(a).zIndex),
+      )[0];
+      return front?.querySelector("img")?.getAttribute("src");
+    });
+  await expect.poll(visibleTile).toMatch(/tile\.openstreetmap\.org/);
+  const beforeZoom = await visibleTile();
+  await map.locator(".leaflet-control-zoom-in").click();
+  await expect.poll(visibleTile).not.toBe(beforeZoom);
+  await expect(map).not.toHaveClass(/leaflet-zoom-anim/);
+  const tileBefore = await visibleTile();
+  await page.getByLabel("更多操作", { exact: true }).click();
+  await page.getByRole("button", { name: "设置", exact: true }).click();
+  await page.getByRole("radio", { name: "薄荷白", exact: true }).check();
+  await page.getByRole("radio", { name: "珊瑚晴空", exact: true }).check();
+  await page.getByRole("button", { name: "完成", exact: true }).click();
+  await expect.poll(visibleTile).toBe(tileBefore);
+  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await page.getByRole("slider", { name: "清单抽屉高度" }).press("End");
+  await page
+    .getByRole("button", { name: "加入菜单 番茄慢炖牛腩", exact: true })
+    .click();
+  const sheet = page.getByRole("region", { name: "菜品抽屉" });
+  await page.getByLabel("更多操作", { exact: true }).click();
+  await page.getByRole("button", { name: "设置", exact: true }).click();
+  await expect(page.getByRole("radio")).toHaveCount(5);
+  await expect(
+    page.getByRole("radio", { name: "珊瑚晴空", exact: true }),
+  ).toBeChecked();
+  for (const [name, id, background, chrome] of [
+    ["薄荷白", "mint", "rgb(242, 248, 245)", "#f2f8f5"],
+    ["午夜蓝", "midnight", "rgb(16, 23, 36)", "#101724"],
+    ["雾紫银白", "lavender", "rgb(249, 250, 253)", "#f9fafd"],
+    ["经典原色", "classic", "rgb(250, 249, 243)", "#f8f7f2"],
+    ["珊瑚晴空", "coral", "rgb(255, 252, 249)", "#fffcf9"],
+  ]) {
+    await page.getByRole("radio", { name, exact: true }).check();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", id);
+    await expect(sheet).toHaveCSS("background-color", background);
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+      "content",
+      chrome,
+    );
+    await expect(sheet).toHaveAttribute("data-snap", "expanded");
+    expect(
+      await page.evaluate(() => localStorage.getItem("tabelog-theme")),
+    ).toBe(id);
+  }
+  // Native radios support keyboard navigation; changing appearance keeps selections.
+  await page.getByRole("radio", { name: "珊瑚晴空", exact: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(
+    page.getByRole("radio", { name: "薄荷白", exact: true }),
+  ).toBeChecked();
+  await page.getByRole("radio", { name: "午夜蓝", exact: true }).check();
+  await page.getByRole("button", { name: "完成", exact: true }).click();
+  await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
+    "已选 1 道菜，共 1 份",
+  );
+  await page.getByRole("button", { name: "番茄慢炖牛腩", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCSS(
+    "background-color",
+    "rgb(26, 36, 52)",
+  );
+  await expect(page.getByRole("dialog")).toContainText("食材清单");
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "midnight");
+  await page.getByRole("button", { name: "登录 / 注册", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCSS(
+    "background-color",
+    "rgb(26, 36, 52)",
+  );
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await signup(context, "themes@example.com", "主题试吃员");
+  await page.reload();
+  await page.getByRole("button", { name: "记一笔", exact: true }).click();
+  await expect(page.getByRole("dialog").getByLabel("店铺名称")).toHaveCSS(
+    "background-color",
+    "rgb(26, 36, 52)",
+  );
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
+  const tab = await context.newPage();
+  await tab.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+  try {
+    await tab.goto("/");
+    await expect(tab.locator("html")).toHaveAttribute("data-theme", "midnight");
+    await page.getByLabel("更多操作", { exact: true }).click();
+    await page.getByRole("button", { name: "设置", exact: true }).click();
+    await page.getByRole("radio", { name: "雾紫银白", exact: true }).check();
+    await expect(tab.locator("html")).toHaveAttribute("data-theme", "lavender");
+    await page.getByRole("button", { name: "完成", exact: true }).click();
+    await page.setViewportSize({ width: 320, height: 568 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(320);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await expect(page.getByRole("main", { name: "店铺地图" })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(1440);
+  } finally {
+    await tab.close();
+  }
+});
+
+test("theme loads before hydration, rejects invalid preferences, and still switches if browser storage is unavailable", async ({
+  browser,
+}) => {
+  for (const [stored, expected] of [
+    ["midnight", "midnight"],
+    ['<invalid-theme>"', "coral"],
+  ]) {
+    const context = await browser.newContext();
+    try {
+      await context.addInitScript(
+        (value) => localStorage.setItem("tabelog-theme", value),
+        stored,
+      );
+      const page = await context.newPage();
+      // The inline bootstrap must work even when the React application cannot hydrate.
+      await page.route(/\/_next\/.*\.js(?:\?|$)/, (route) => route.abort());
+      await page.goto("/");
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-theme",
+        expected,
+      );
+      await expect(page.locator("body")).toHaveCSS(
+        "background-color",
+        expected === "midnight" ? "rgb(16, 23, 36)" : "rgb(255, 252, 249)",
+      );
+    } finally {
+      await context.close();
+    }
+  }
+  const context = await browser.newContext();
+  try {
+    await context.addInitScript(() => {
+      Storage.prototype.getItem = () => {
+        throw new DOMException("Storage unavailable", "SecurityError");
+      };
+      Storage.prototype.setItem = () => {
+        throw new DOMException("Storage unavailable", "SecurityError");
+      };
+    });
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+    await page.goto("/");
+    await page.getByLabel("更多操作", { exact: true }).click();
+    await page.getByRole("button", { name: "设置", exact: true }).click();
+    await page.getByRole("radio", { name: "午夜蓝", exact: true }).check();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-theme",
+      "midnight",
+    );
+    await page.getByRole("button", { name: "完成", exact: true }).click();
+    await expect(page.getByLabel("模块切换", { exact: true })).toBeVisible();
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

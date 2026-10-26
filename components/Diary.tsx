@@ -28,6 +28,7 @@ import {
   AlertCircle,
   MoreHorizontal,
   UserRound,
+  Settings,
 } from "lucide-react";
 import type {
   Entry,
@@ -44,6 +45,7 @@ import Modal from "./Modal";
 import OrderingMenu, { type Quantities } from "./OrderingMenu";
 import StoreExplorer from "./StoreExplorer";
 import BottomSheet from "./BottomSheet";
+import ThemeSettings from "./ThemeSettings";
 import { sheetStops, type SheetSnap } from "@/lib/sheet";
 import { Logo, EntryDetail } from "./EntryPresentation";
 const MapView = dynamic(() => import("./MapView"), {
@@ -87,6 +89,7 @@ export default function Diary() {
   const [viewport, setViewport] = useState(844);
   const [activeId, setActiveId] = useState<string>();
   const [mapFocus, setMapFocus] = useState<Location | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
     const update = () => setViewport(window.innerHeight);
     update();
@@ -123,9 +126,13 @@ export default function Diary() {
       .finally(() => {
         if (active) setBooting(false);
       });
-    const saved = localStorage.getItem("tabelog-map");
-    if (["osm", "google", "amap"].includes(saved || ""))
-      setProvider(saved as MapProvider);
+    try {
+      const saved = localStorage.getItem("tabelog-map");
+      if (["osm", "google", "amap"].includes(saved || ""))
+        setProvider(saved as MapProvider);
+    } catch {
+      // Browser storage is optional for map and appearance preferences.
+    }
     return () => {
       active = false;
       if (timer.current) clearTimeout(timer.current);
@@ -187,17 +194,26 @@ export default function Diary() {
   }
   function changeProvider(next: MapProvider) {
     setProvider(next);
-    localStorage.setItem("tabelog-map", next);
+    try {
+      localStorage.setItem("tabelog-map", next);
+    } catch {}
   }
-  const source = (
-    demo ? (kind === "recipe" ? DEMO_RECIPES : DEMO_ENTRIES) : entries
-  ).filter(
-    (e) =>
-      e.kind === kind &&
-      (demo ||
-        (scope === "mine"
-          ? e.ownerId === user?.id
-          : e.visibility === "public")),
+  const source = useMemo(
+    () =>
+      (demo
+        ? kind === "recipe"
+          ? DEMO_RECIPES
+          : DEMO_ENTRIES
+        : entries
+      ).filter(
+        (e) =>
+          e.kind === kind &&
+          (demo ||
+            (scope === "mine"
+              ? e.ownerId === user?.id
+              : e.visibility === "public")),
+      ),
+    [demo, kind, entries, scope, user?.id],
   );
   const filtered = useMemo(
     () =>
@@ -547,6 +563,15 @@ export default function Diary() {
             </summary>
             <div className="topbar-dropdown">
               <button
+                onClick={(e) => {
+                  setSettingsOpen(true);
+                  e.currentTarget.closest("details")?.removeAttribute("open");
+                }}
+              >
+                <Settings size={14} />
+                设置
+              </button>
+              <button
                 aria-label={demo ? "结束示例漫游" : "浏览示例日记"}
                 onClick={(e) => {
                   toggleDemo();
@@ -668,6 +693,7 @@ export default function Diary() {
           </>
         )}
       </BottomSheet>
+      {settingsOpen && <ThemeSettings onClose={() => setSettingsOpen(false)} />}
       {authOpen && (
         <Modal title="我的美味账户" onClose={() => setAuthOpen(false)}>
           <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />

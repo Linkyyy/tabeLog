@@ -9,12 +9,14 @@ import {
 } from "lucide-react";
 import { gcjToWgs, wgsToGcj } from "@/lib/coordinates";
 import type { Entry, Location, MapProvider } from "@/lib/types";
+import { useTheme } from "./ThemeProvider";
 type Pin = Pick<Entry, "id" | "name" | "lat" | "lng" | "rating">;
 type Adapter = {
   destroy: () => void;
   pins: (items: Pin[], selected?: string) => void;
   focus: (point: Location) => void;
   fit?: (items: Pin[]) => void;
+  appearance?: () => void;
   search?: (term: string) => Promise<Location[]>;
 };
 type Props = {
@@ -34,6 +36,37 @@ const keys = {
   amap: process.env.NEXT_PUBLIC_AMAP_KEY,
 };
 const scripts: Record<string, Promise<void> | undefined> = {};
+const darkGoogleStyle = [
+  { elementType: "geometry", stylers: [{ color: "#172438" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#b0bed1" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#172438" }] },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#34465f" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#183c65" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#1b3936" }],
+  },
+];
+function mapAppearance() {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    dark: document.documentElement.dataset.theme === "midnight",
+    accent: style.getPropertyValue("--rust").trim(),
+    surface: style.getPropertyValue("--white").trim(),
+    text: style.getPropertyValue("--ink").trim(),
+    onAccent: style.getPropertyValue("--on-accent").trim(),
+    background: style.getPropertyValue("--map-bg").trim(),
+  };
+}
 function loadScript(id: string, src: string) {
   if (!scripts[id])
     scripts[id] = new Promise<void>((resolve, reject) => {
@@ -70,6 +103,7 @@ function label(pin: Pin, selected: boolean) {
   return el;
 }
 export default function MapView(props: Props) {
+  const { theme } = useTheme();
   const host = useRef<HTMLDivElement>(null),
     latest = useRef(props);
   latest.current = props;
@@ -183,6 +217,8 @@ export default function MapView(props: Props) {
           disableDefaultUI: true,
           zoomControl: true,
           clickableIcons: false,
+          styles: mapAppearance().dark ? darkGoogleStyle : null,
+          backgroundColor: mapAppearance().background,
         });
         const listener = map.addListener("click", (e: any) => {
           if (latest.current.pickMode && e.latLng)
@@ -193,6 +229,11 @@ export default function MapView(props: Props) {
         });
         let markers: any[] = [];
         instance = {
+          appearance: () =>
+            map.setOptions({
+              styles: mapAppearance().dark ? darkGoogleStyle : null,
+              backgroundColor: mapAppearance().background,
+            }),
           destroy: () => {
             listener.remove();
             markers.forEach((m) => m.setMap(null));
@@ -218,6 +259,7 @@ export default function MapView(props: Props) {
             });
           },
           pins: (items, selected) => {
+            const palette = mapAppearance();
             markers.forEach((m) => m.setMap(null));
             markers = items.map((pin) => {
               const m = new g.maps.Marker({
@@ -226,14 +268,15 @@ export default function MapView(props: Props) {
                 title: `地图店铺：${pin.name}`,
                 label: {
                   text: `★ ${pin.rating}`,
-                  color: pin.id === selected ? "#ffffff" : "#302c26",
+                  color: pin.id === selected ? palette.onAccent : palette.text,
                 },
                 icon: {
                   path: g.maps.SymbolPath.CIRCLE,
                   scale: 24,
-                  fillColor: pin.id === selected ? "#bc5236" : "#ffffff",
+                  fillColor:
+                    pin.id === selected ? palette.accent : palette.surface,
                   fillOpacity: 1,
-                  strokeColor: "#bc5236",
+                  strokeColor: palette.accent,
                   strokeWeight: 2,
                 },
               });
@@ -275,6 +318,9 @@ export default function MapView(props: Props) {
           center: [lng, lat],
           zoom: 13,
           viewMode: "2D",
+          mapStyle: mapAppearance().dark
+            ? "amap://styles/darkblue"
+            : "amap://styles/normal",
         });
         let markers: any[] = [];
         map.on("click", (e: any) => {
@@ -284,6 +330,12 @@ export default function MapView(props: Props) {
           }
         });
         instance = {
+          appearance: () =>
+            map.setMapStyle(
+              mapAppearance().dark
+                ? "amap://styles/darkblue"
+                : "amap://styles/normal",
+            ),
           destroy: () => map.destroy(),
           focus: (p) => {
             const [y, x] = wgsToGcj(p.lat, p.lng);
@@ -383,8 +435,9 @@ export default function MapView(props: Props) {
     };
   }, [props.provider]);
   useEffect(() => {
+    adapter?.appearance?.();
     adapter?.pins(props.entries, props.selectedId);
-  }, [adapter, props.entries, props.selectedId]);
+  }, [adapter, props.entries, props.selectedId, theme]);
   useEffect(() => {
     if (!props.focus && props.entries.length && props.bottomInset !== undefined)
       adapter?.fit?.(props.entries);

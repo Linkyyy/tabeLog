@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import "./themes.css";
+import ThemeProvider from "@/components/ThemeProvider";
+import { DEFAULT_THEME, themeBootstrap } from "@/lib/themes";
 export const metadata: Metadata = {
   title: "tabeLog · 探店日记与我的菜单",
   description:
@@ -11,7 +14,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f8f7f2",
+  themeColor: "#fffcf9",
 };
 export default function RootLayout({
   children,
@@ -19,8 +22,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
-      <body>{children}</body>
+    <html lang="zh-CN" data-theme={DEFAULT_THEME} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
