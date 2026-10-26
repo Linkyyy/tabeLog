@@ -10,8 +10,10 @@ import {
 import { gcjToWgs, wgsToGcj } from "@/lib/coordinates";
 import type { Entry, Location, MapProvider } from "@/lib/types";
 import { useTheme } from "./ThemeProvider";
+import type * as Leaflet from "leaflet";
 type Pin = Pick<Entry, "id" | "name" | "lat" | "lng" | "rating">;
 type Adapter = {
+  context?: string;
   destroy: () => void;
   pins: (items: Pin[], selected?: string) => void;
   focus: (point: Location) => void;
@@ -30,32 +32,14 @@ type Props = {
   focus?: Location | null;
   topInset?: number;
   bottomInset?: number;
+  demo?: boolean;
+  showProvider?: boolean;
 };
 const keys = {
   google: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   amap: process.env.NEXT_PUBLIC_AMAP_KEY,
 };
 const scripts: Record<string, Promise<void> | undefined> = {};
-const darkGoogleStyle = [
-  { elementType: "geometry", stylers: [{ color: "#172438" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#b0bed1" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#172438" }] },
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#34465f" }],
-  },
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#183c65" }],
-  },
-  {
-    featureType: "poi.park",
-    elementType: "geometry",
-    stylers: [{ color: "#1b3936" }],
-  },
-];
 function mapAppearance() {
   const style = getComputedStyle(document.documentElement);
   return {
@@ -65,7 +49,74 @@ function mapAppearance() {
     text: style.getPropertyValue("--ink").trim(),
     onAccent: style.getPropertyValue("--on-accent").trim(),
     background: style.getPropertyValue("--map-bg").trim(),
+    building: style.getPropertyValue("--map-building").trim(),
+    water: style.getPropertyValue("--map-water").trim(),
+    park: style.getPropertyValue("--map-park").trim(),
+    road: style.getPropertyValue("--map-road").trim(),
+    arterial: style.getPropertyValue("--map-arterial").trim(),
+    label: style.getPropertyValue("--map-label").trim(),
   };
+}
+function googleStyle() {
+  if (document.documentElement.dataset.theme === "classic") return null;
+  const palette = mapAppearance();
+  return [
+    { elementType: "geometry", stylers: [{ color: palette.background }] },
+    { elementType: "labels.text.fill", stylers: [{ color: palette.label }] },
+    {
+      elementType: "labels.text.stroke",
+      stylers: [{ color: palette.background }],
+    },
+    {
+      featureType: "landscape.man_made",
+      elementType: "geometry",
+      stylers: [{ color: palette.building }],
+    },
+    {
+      featureType: "road",
+      elementType: "geometry",
+      stylers: [{ color: palette.road }],
+    },
+    {
+      featureType: "road.highway",
+      elementType: "geometry",
+      stylers: [{ color: palette.arterial }],
+    },
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [{ color: palette.water }],
+    },
+    {
+      featureType: "poi.park",
+      elementType: "geometry",
+      stylers: [{ color: palette.park }],
+    },
+  ];
+}
+function amapStyle() {
+  const theme = document.documentElement.dataset.theme;
+  const name =
+    theme === "midnight"
+      ? "darkblue"
+      : theme === "mint"
+        ? "fresh"
+        : theme === "lavender"
+          ? "whitesmoke"
+          : "normal";
+  return `amap://styles/${name}`;
+}
+function rasterUrl() {
+  const theme = document.documentElement.dataset.theme;
+  if (theme === "classic")
+    return "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const style =
+    theme === "midnight"
+      ? "dark_all"
+      : theme === "coral"
+        ? "rastertiles/voyager"
+        : "light_all";
+  return `https://basemaps.cartocdn.com/${style}/{z}/{x}/{y}.png`;
 }
 function loadScript(id: string, src: string) {
   if (!scripts[id])
@@ -99,7 +150,13 @@ function label(pin: Pin, selected: boolean) {
   el.className = `map-pin ${selected ? "active" : ""}`;
   el.setAttribute("aria-label", `地图店铺：${pin.name}`);
   el.setAttribute("aria-pressed", String(selected));
-  el.textContent = pin.rating ? "★ " + pin.rating : "●";
+  const star = document.createElement("span");
+  star.className = "pin-star";
+  star.textContent = pin.rating ? "★" : "●";
+  el.append(
+    star,
+    document.createTextNode(pin.rating ? ` ${pin.rating.toFixed(1)}` : ""),
+  );
   return el;
 }
 export default function MapView(props: Props) {
@@ -115,7 +172,10 @@ export default function MapView(props: Props) {
     [results, setResults] = useState<Location[]>([]),
     [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
+  const activeAdapter =
+    adapter?.context === `${props.provider}:${!!props.demo}` ? adapter : null;
   useEffect(() => {
+    const abort = new AbortController();
     let cancelled = false,
       instance: Adapter | undefined;
     setAdapter(null);
@@ -129,26 +189,52 @@ export default function MapView(props: Props) {
         throw new Error(
           `${provider === "google" ? "Google" : "高德"} 地图尚未配置密钥，请先使用 OpenStreetMap。`,
         );
-      const initial = latest.current.focus ||
-        latest.current.entries[0] || { lat: 31.2304, lng: 121.4737 };
+      const initial =
+        latest.current.focus ||
+        latest.current.entries[0] ||
+        (props.demo
+          ? { lat: 31.2385, lng: 121.495 }
+          : { lat: 31.2304, lng: 121.4737 });
       if (provider === "osm") {
         const L = await import("leaflet");
         if (cancelled || !host.current) return;
-        const map = L.map(host.current, { zoomControl: false }).setView(
-          [initial.lat, initial.lng],
-          13,
-        );
+        const map = L.map(host.current, {
+          zoomControl: false,
+          minZoom: props.demo ? 12 : 0,
+          maxZoom: 19,
+        }).setView([initial.lat, initial.lng], 13);
         L.control.zoom({ position: "bottomright" }).addTo(map);
-        const tiles = L.tileLayer(
-          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          {
+        let removeDemo: (() => void) | undefined;
+        let tiles: Leaflet.TileLayer | undefined;
+        let activeTileUrl = "";
+        if (props.demo) {
+          const { addDemoMap } = await import("@/lib/demo-map");
+          if (cancelled) {
+            map.remove();
+            return;
+          }
+          try {
+            removeDemo = await addDemoMap(L, map, abort.signal);
+          } catch (error) {
+            map.remove();
+            throw error;
+          }
+          if (cancelled) {
+            removeDemo?.();
+            map.remove();
+            return;
+          }
+          map.getContainer().classList.add("has-demo-basemap");
+        } else {
+          activeTileUrl = rasterUrl();
+          tiles = L.tileLayer(activeTileUrl, {
             attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+              '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
             maxZoom: 19,
-          },
-        ).addTo(map);
+          }).addTo(map);
+        }
         let errors = 0;
-        tiles.on("tileerror", () => {
+        tiles?.on("tileerror", () => {
           if (!cancelled && ++errors >= 3) setTileError(true);
         });
         const layer = L.layerGroup().addTo(map);
@@ -159,8 +245,20 @@ export default function MapView(props: Props) {
         const observer = new ResizeObserver(() => map.invalidateSize());
         observer.observe(host.current);
         instance = {
+          appearance: () => {
+            if (!tiles) return;
+            const next = rasterUrl();
+            if (next !== activeTileUrl) {
+              activeTileUrl = next;
+              errors = 0;
+              setTileError(false);
+              tiles.setUrl(next);
+            }
+          },
           destroy: () => {
             observer.disconnect();
+            removeDemo?.();
+            map.getContainer().classList.remove("has-demo-basemap");
             map.remove();
           },
           focus: (p) =>
@@ -180,11 +278,26 @@ export default function MapView(props: Props) {
               },
             ),
           fit: (items) =>
-            map.fitBounds(L.latLngBounds(items.map((p) => [p.lat, p.lng])), {
-              maxZoom: 14,
-              paddingTopLeft: [24, (latest.current.topInset || 0) + 24],
-              paddingBottomRight: [24, (latest.current.bottomInset || 0) + 24],
-            }),
+            map.fitBounds(
+              L.latLngBounds(
+                (items.length ? items : [{ lat: 31.2395, lng: 121.4885 }]).map(
+                  (p) => [p.lat, p.lng],
+                ),
+              ),
+              {
+                maxZoom: props.demo
+                  ? items.length || map.getSize().x > 900
+                    ? 15
+                    : 14
+                  : 14,
+                animate: false,
+                paddingTopLeft: [24, (latest.current.topInset || 0) + 24],
+                paddingBottomRight: [
+                  24,
+                  (latest.current.bottomInset || 0) + 24,
+                ],
+              },
+            ),
           pins: (items, selected) => {
             layer.clearLayers();
             for (const pin of items) {
@@ -217,7 +330,7 @@ export default function MapView(props: Props) {
           disableDefaultUI: true,
           zoomControl: true,
           clickableIcons: false,
-          styles: mapAppearance().dark ? darkGoogleStyle : null,
+          styles: googleStyle(),
           backgroundColor: mapAppearance().background,
         });
         const listener = map.addListener("click", (e: any) => {
@@ -231,7 +344,7 @@ export default function MapView(props: Props) {
         instance = {
           appearance: () =>
             map.setOptions({
-              styles: mapAppearance().dark ? darkGoogleStyle : null,
+              styles: googleStyle(),
               backgroundColor: mapAppearance().background,
             }),
           destroy: () => {
@@ -318,9 +431,7 @@ export default function MapView(props: Props) {
           center: [lng, lat],
           zoom: 13,
           viewMode: "2D",
-          mapStyle: mapAppearance().dark
-            ? "amap://styles/darkblue"
-            : "amap://styles/normal",
+          mapStyle: amapStyle(),
         });
         let markers: any[] = [];
         map.on("click", (e: any) => {
@@ -330,12 +441,7 @@ export default function MapView(props: Props) {
           }
         });
         instance = {
-          appearance: () =>
-            map.setMapStyle(
-              mapAppearance().dark
-                ? "amap://styles/darkblue"
-                : "amap://styles/normal",
-            ),
+          appearance: () => map.setMapStyle(amapStyle()),
           destroy: () => map.destroy(),
           focus: (p) => {
             const [y, x] = wgsToGcj(p.lat, p.lng);
@@ -420,7 +526,10 @@ export default function MapView(props: Props) {
         instance?.destroy();
         return;
       }
-      setAdapter(instance!);
+      setAdapter({
+        ...instance!,
+        context: `${props.provider}:${!!props.demo}`,
+      });
       setLoading(false);
     }
     init().catch((e) => {
@@ -431,26 +540,39 @@ export default function MapView(props: Props) {
     });
     return () => {
       cancelled = true;
+      abort.abort();
       instance?.destroy();
     };
-  }, [props.provider]);
+  }, [props.provider, props.demo]);
   useEffect(() => {
-    adapter?.appearance?.();
-    adapter?.pins(props.entries, props.selectedId);
-  }, [adapter, props.entries, props.selectedId, theme]);
+    activeAdapter?.appearance?.();
+    activeAdapter?.pins(props.entries, props.selectedId);
+  }, [activeAdapter, props.entries, props.selectedId, theme]);
   useEffect(() => {
-    if (!props.focus && props.entries.length && props.bottomInset !== undefined)
-      adapter?.fit?.(props.entries);
-  }, [adapter, props.entries, props.focus, props.topInset, props.bottomInset]);
+    if (
+      !props.focus &&
+      (props.entries.length || (props.demo && props.provider === "osm")) &&
+      props.bottomInset !== undefined
+    )
+      activeAdapter?.fit?.(props.entries);
+  }, [
+    activeAdapter,
+    props.entries,
+    props.focus,
+    props.topInset,
+    props.bottomInset,
+    props.demo,
+    props.provider,
+  ]);
   useEffect(() => {
-    if (props.focus) adapter?.focus(props.focus);
-  }, [adapter, props.focus, props.topInset, props.bottomInset]);
+    if (props.focus) activeAdapter?.focus(props.focus);
+  }, [activeAdapter, props.focus, props.topInset, props.bottomInset]);
   async function search() {
-    if (!adapter?.search || !term.trim()) return;
+    if (!activeAdapter?.search || !term.trim()) return;
     setSearching(true);
     setError("");
     try {
-      setResults(await adapter.search(term.trim()));
+      setResults(await activeAdapter.search(term.trim()));
     } catch (e) {
       setError(e instanceof Error ? e.message : "搜索失败");
     } finally {
@@ -466,7 +588,7 @@ export default function MapView(props: Props) {
     navigator.geolocation.getCurrentPosition(
       (p) => {
         const point = { lat: p.coords.latitude, lng: p.coords.longitude };
-        adapter?.focus(point);
+        activeAdapter?.focus(point);
         if (props.pickMode) props.onPick?.(point);
         setLocating(false);
       },
@@ -480,23 +602,27 @@ export default function MapView(props: Props) {
   return (
     <div className={`map-shell ${props.pickMode ? "picking" : ""}`}>
       <div ref={host} className="map-canvas" aria-label="美食足迹地图" />
-      <div className="map-provider">
-        <MapPin size={14} />
-        <select
-          aria-label="地图服务"
-          value={props.provider}
-          onChange={(e) =>
-            props.onProviderChange(e.target.value as MapProvider)
-          }
-        >
-          <option value="osm">OpenStreetMap</option>
-          <option value="google">
-            Google 地图{!keys.google ? " · 需密钥" : ""}
-          </option>
-          <option value="amap">高德地图{!keys.amap ? " · 需密钥" : ""}</option>
-        </select>
-      </div>
-      {props.pickMode && adapter?.search && (
+      {props.showProvider !== false && (
+        <div className="map-provider">
+          <MapPin size={14} />
+          <select
+            aria-label="地图服务"
+            value={props.provider}
+            onChange={(e) =>
+              props.onProviderChange(e.target.value as MapProvider)
+            }
+          >
+            <option value="osm">OpenStreetMap</option>
+            <option value="google">
+              Google 地图{!keys.google ? " · 需密钥" : ""}
+            </option>
+            <option value="amap">
+              高德地图{!keys.amap ? " · 需密钥" : ""}
+            </option>
+          </select>
+        </div>
+      )}
+      {props.pickMode && activeAdapter?.search && (
         <div
           role="search"
           className="place-search"
@@ -526,7 +652,7 @@ export default function MapView(props: Props) {
                   key={i}
                   onClick={() => {
                     props.onPick?.(p);
-                    adapter.focus(p);
+                    activeAdapter.focus(p);
                     setResults([]);
                   }}
                 >
@@ -576,7 +702,7 @@ export default function MapView(props: Props) {
         className="locate-button"
         onClick={locate}
         aria-label="定位到我"
-        disabled={locating || !adapter}
+        disabled={locating || !activeAdapter}
       >
         {locating ? (
           <LoaderCircle className="spin" size={18} />

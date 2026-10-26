@@ -8,14 +8,14 @@
   --ink: #352d2b;
   --muted: #82736d;
   --line: #eee2db;
-  --rust: #f36f58;
+  --rust: #f0644b;
   --rust-dark: #ec6048;
   --olive: #b3402d;
   --accent-ink: #b3402d;
   --accent-soft: #fff0e9;
   --on-accent: #39231d;
   --nav-bg: #fffdfaf2;
-  --map-bg: #e9eee9;
+  --map-bg: #f2f0eb;
   --map-grid: #ffffff80;
   --basket-bg: #382f2c;
   --basket-ink: #fff9f5;
@@ -24,10 +24,18 @@
   --rating: #ce6530;
   --danger: #ae3c2b;
   --danger-soft: #fff0ec;
+  --map-building: #e5e4df;
+  --map-park: #c4dfb6;
+  --map-water: #b1dce7;
+  --map-road: #ffffff;
+  --map-arterial: #f1cfa1;
+  --map-label: #727d76;
+  --map-water-label: #4d96b4;
+  --control-ink: #ffffff;
 }
 [data-theme="mint"] {
   color-scheme: light;
-  --paper: #f2f8f5;
+  --paper: #ffffff;
   --white: #ffffff;
   --soft: #eaf3ee;
   --ink: #152a24;
@@ -49,6 +57,14 @@
   --rating: #a4731a;
   --danger: #b23f36;
   --danger-soft: #fff0ed;
+  --map-building: #e2eae6;
+  --map-park: #c2e4cd;
+  --map-water: #b3dce8;
+  --map-road: #ffffff;
+  --map-arterial: #d5dfd0;
+  --map-label: #58786a;
+  --map-water-label: #5493af;
+  --control-ink: #ffffff;
 }
 [data-theme="midnight"] {
   color-scheme: dark;
@@ -74,6 +90,14 @@
   --rating: #ffc56a;
   --danger: #ffb2a6;
   --danger-soft: #3e242a;
+  --map-building: #1c2b40;
+  --map-park: #1c3c36;
+  --map-water: #1e487a;
+  --map-road: #344761;
+  --map-arterial: #506c95;
+  --map-label: #adbed8;
+  --map-water-label: #81aee2;
+  --control-ink: #101b32;
 }
 [data-theme="lavender"] {
   color-scheme: light;
@@ -99,6 +123,14 @@
   --rating: #ac7521;
   --danger: #b23e4c;
   --danger-soft: #fff0f1;
+  --map-building: #e6e4ee;
+  --map-park: #d4e1d5;
+  --map-water: #c5c4ef;
+  --map-road: #ffffff;
+  --map-arterial: #e0d8f0;
+  --map-label: #7e7697;
+  --map-water-label: #8b82c7;
+  --control-ink: #ffffff;
 }
 [data-theme="classic"] {
   color-scheme: light;
@@ -117,6 +149,14 @@
   --map-bg: #e8e8dc;
   --map-grid: #ffffff55;
   --shadow: #353e2612;
+  --map-building: #e5e3d9;
+  --map-park: #d4dfb7;
+  --map-water: #b9dce0;
+  --map-road: #fffef8;
+  --map-arterial: #e3c89d;
+  --map-label: #81826c;
+  --map-water-label: #69999e;
+  --control-ink: #fffaf2;
 }
 
 /* Apply the selected palette to the entire application, including dialogs. */
@@ -125,9 +165,7 @@ html:not([data-theme="classic"]) :is(.map-application, .map-placeholder) {
 }
 html:not([data-theme="classic"]) .map-shell {
   background-color: var(--map-bg);
-  background-image:
-    linear-gradient(var(--map-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--map-grid) 1px, transparent 1px);
+  background-image: none;
 }
 html:not([data-theme="classic"]) .map-topbar {
   background: var(--nav-bg);
@@ -532,7 +570,11 @@ html:not([data-theme="classic"]) .leaflet-control-zoom a {
   color: var(--ink) !important;
 }
 html[data-theme="midnight"] .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.78) saturate(0.65);
+  filter: none;
+}
+html[data-theme="lavender"]
+  :is(.leaflet-tile-pane, .map-canvas .amap-layer canvas) {
+  filter: sepia(0.2) hue-rotate(205deg) saturate(0.65);
 }
 
 /* Theme settings previews use the actual tokens of each available theme. */
@@ -757,5 +799,353 @@ html[data-theme="midnight"] .leaflet-tile-pane {
 @media (prefers-reduced-motion: reduce) {
   .map-bottom-sheet {
     transition: none;
+  }
+}
+
+/* Match the selected visual proposals: real cartography, softer floating
+   surfaces, generous photographs, and readable type instead of dense rows. */
+.map-shell:has(.has-demo-basemap) {
+  background-image: none;
+}
+.basemap-label-host {
+  background: none;
+  border: 0;
+  pointer-events: none;
+}
+.basemap-label {
+  display: block;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: var(--map-label);
+  text-shadow:
+    0 1px 2px var(--map-bg),
+    1px 0 2px var(--map-bg),
+    -1px 0 2px var(--map-bg);
+  pointer-events: none;
+}
+.basemap-label.water-label {
+  color: var(--map-water-label);
+  font-size: 13px;
+  letter-spacing: 3px;
+}
+.sheet-grabber:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: -5px;
+  border-radius: 20px;
+}
+html:not([data-theme="classic"]) .map-topbar {
+  border-color: color-mix(in srgb, var(--white) 70%, var(--line));
+}
+html:not([data-theme="classic"]) .map-bottom-sheet {
+  border-radius: 26px;
+  background-image: linear-gradient(
+    130deg,
+    color-mix(in srgb, var(--white) 60%, transparent),
+    transparent 65%
+  );
+  box-shadow:
+    0 -6px 40px var(--shadow),
+    0 12px 45px var(--shadow);
+}
+html:not([data-theme="classic"])
+  :is(.topbar-add, .quantity-control .quantity-plus) {
+  color: var(--control-ink);
+}
+html:not([data-theme="classic"]) .map-pin {
+  position: relative;
+  border-radius: 18px;
+  color: var(--ink);
+  background: var(--white);
+  font-weight: 600;
+}
+html:not([data-theme="classic"]) .map-pin::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  left: calc(50% - 4px);
+  bottom: -5px;
+  transform: rotate(45deg);
+  background: inherit;
+  border-right: 1px solid var(--rust);
+  border-bottom: 1px solid var(--rust);
+}
+html:not([data-theme="classic"]) .map-pin .pin-star {
+  color: var(--rust);
+}
+html:not([data-theme="classic"]) .map-pin:is(.active, :hover) {
+  color: var(--control-ink);
+  background: var(--rust);
+}
+html:not([data-theme="classic"]) .map-pin:is(.active, :hover) .pin-star {
+  color: inherit;
+}
+html:not([data-theme="classic"]) .map-application .menu-categories {
+  background: transparent;
+  border-color: transparent;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+html:not([data-theme="classic"]) .map-application .menu-categories button {
+  flex-direction: column;
+  justify-content: center;
+  padding: 13px 4px;
+  gap: 7px;
+  border-radius: 10px;
+  min-height: 66px;
+}
+html:not([data-theme="classic"]) .menu-categories button small {
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  font-size: 8px;
+}
+html:not([data-theme="classic"]) .menu-categories button.active {
+  box-shadow: none;
+}
+html:not([data-theme="classic"]) .menu-categories button.active::before {
+  left: 0;
+  height: 35px;
+  width: 2px;
+}
+html:not([data-theme="classic"]) .map-application .ordering-body {
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 18px;
+}
+html:not([data-theme="classic"]) .map-application .dish-photo {
+  width: 128px;
+  height: 150px;
+  border-radius: 12px;
+}
+html:not([data-theme="classic"]) .map-application .dish-row {
+  gap: 18px;
+  padding: 22px 0;
+}
+html:not([data-theme="classic"]) .map-application .dish-row:first-child {
+  padding-top: 3px;
+}
+html:not([data-theme="classic"]) .map-application .dish-name {
+  font-size: 18px;
+  font-weight: 650;
+}
+html:not([data-theme="classic"]) .dish-description {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 8px;
+  -webkit-line-clamp: 2;
+}
+html:not([data-theme="classic"]) .dish-facts {
+  font-size: 11px;
+  line-height: 1.7;
+}
+html:not([data-theme="classic"]) .dish-recipe-link {
+  font-size: 11px;
+}
+html:not([data-theme="classic"]) .dish-recipe-link span {
+  font-size: 9px;
+}
+html:not([data-theme="classic"]) .dish-info > .stars svg {
+  width: 12px;
+  height: 12px;
+}
+html:not([data-theme="classic"]) .quantity-control button {
+  width: 32px;
+  height: 32px;
+}
+html:not([data-theme="classic"]) .map-application .store-row {
+  padding: 13px;
+  border-radius: 15px;
+  box-shadow: none;
+}
+html:not([data-theme="classic"]) .map-application .store-photo {
+  width: 114px;
+  height: 141px;
+  border-radius: 10px;
+}
+html:not([data-theme="classic"]) .map-application .store-row .dish-name {
+  font-size: 18px;
+}
+html:not([data-theme="classic"]) .map-application .store-row .dish-description {
+  font-size: 11px;
+  -webkit-line-clamp: 2;
+}
+html:not([data-theme="classic"])
+  :is(.store-address, .store-rating-line > span:last-child:not(.stars)) {
+  font-size: 11px;
+}
+html:not([data-theme="classic"]) .map-application .store-bottom > span {
+  font-size: 9px;
+}
+html:not([data-theme="classic"]) .store-locate {
+  font-size: 10px;
+  padding: 7px 8px;
+}
+html:not([data-theme="classic"]) .map-application .sheet-toolbar .search-box {
+  height: 43px;
+  border-radius: 10px;
+}
+html:not([data-theme="classic"]) .sheet-toolbar .search-box input {
+  font-size: 12px;
+}
+html:not([data-theme="classic"]) .sheet-summary {
+  font-size: 11px;
+}
+html:not([data-theme="classic"]) .sheet-filters {
+  min-height: 40px;
+}
+html:not([data-theme="classic"]) .sheet-filters > select {
+  font-size: 10px;
+}
+html:not([data-theme="classic"]) .sheet-demo-note {
+  font-size: 9px;
+}
+html:not([data-theme="classic"]) .visibility-badge.public {
+  background: #eaf2e5;
+  color: #526c46;
+  border-color: #e4eddd;
+}
+html[data-theme="midnight"] .visibility-badge.public {
+  background: #223f3c;
+  color: #b6dacf;
+  border-color: #2a4d46;
+}
+html:not([data-theme="classic"]) .visibility-badge.private {
+  background: var(--soft);
+  color: var(--muted);
+}
+html[data-theme="coral"] .menu-selection-bar > button {
+  background: #ffeadf;
+  color: #492a20;
+}
+.map-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+}
+.map-setting > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.map-setting > select {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--ink);
+  max-width: 170px;
+}
+
+@media (max-width: 600px) {
+  html:not([data-theme="classic"]) .map-bottom-sheet {
+    border-radius: 26px 26px 0 0;
+  }
+  html:not([data-theme="classic"]) .map-application .ordering-body {
+    grid-template-columns: 55px minmax(0, 1fr);
+    gap: 12px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-photo {
+    width: 102px;
+    height: 139px;
+    border-radius: 10px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-row {
+    gap: 12px;
+    padding: 18px 0;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-name {
+    font-size: 16px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-description {
+    font-size: 11px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-facts {
+    font-size: 10px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-info {
+    min-height: 140px;
+  }
+  html:not([data-theme="classic"])
+    .map-application
+    .dish-title-line
+    > .visibility-badge {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+  html:not([data-theme="classic"]) .dish-title-line {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  html:not([data-theme="classic"]) .dish-recipe-link span {
+    display: none;
+  }
+  html:not([data-theme="classic"]) .map-application .menu-categories button {
+    font-size: 11px;
+    min-height: 65px;
+  }
+  html:not([data-theme="classic"]) .map-application .store-photo {
+    width: 102px;
+    height: 132px;
+  }
+  html:not([data-theme="classic"]) .map-application .store-row {
+    gap: 12px;
+  }
+  html:not([data-theme="classic"]) .map-application .store-row .dish-name {
+    font-size: 17px;
+  }
+  html:not([data-theme="classic"]) .map-application .store-bottom > span {
+    font-size: 8px;
+  }
+  html:not([data-theme="classic"]) .map-application .store-locate {
+    font-size: 9px;
+  }
+  html:not([data-theme="classic"]) .map-application .store-categories button {
+    font-size: 10px;
+    padding: 7px 10px;
+  }
+  html:not([data-theme="classic"]) .map-application .selection-bar-copy strong {
+    font-size: 12px;
+  }
+  html:not([data-theme="classic"]) .map-application .selection-bar-copy small {
+    font-size: 9px;
+  }
+  html:not([data-theme="classic"])
+    .map-application
+    .menu-selection-bar
+    > button {
+    font-size: 11px;
+    padding: 12px 13px;
+    border-radius: 10px;
+  }
+}
+@media (max-width: 370px) {
+  html:not([data-theme="classic"]) .map-application .ordering-body {
+    grid-template-columns: 47px minmax(0, 1fr);
+    gap: 8px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-photo {
+    width: 81px;
+    height: 126px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-name {
+    font-size: 14px;
+  }
+  html:not([data-theme="classic"]) .map-application .store-photo {
+    width: 85px;
+  }
+  html:not([data-theme="classic"]) .map-application .dish-description {
+    font-size: 10px;
+  }
+  html:not([data-theme="classic"]) .sheet-demo-note {
+    font-size: 8px;
   }
 }

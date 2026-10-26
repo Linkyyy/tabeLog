@@ -4,8 +4,17 @@ import { Check, MapPin, Utensils } from "lucide-react";
 import { DEFAULT_THEME, THEMES } from "@/lib/themes";
 import { useTheme } from "./ThemeProvider";
 import Modal from "./Modal";
+import type { MapProvider } from "@/lib/types";
 
-export default function ThemeSettings({ onClose }: { onClose: () => void }) {
+export default function ThemeSettings({
+  onClose,
+  provider,
+  onProviderChange,
+}: {
+  onClose: () => void;
+  provider: MapProvider;
+  onProviderChange: (provider: MapProvider) => void;
+}) {
   const { theme, setTheme } = useTheme();
   return (
     <Modal title="设置" onClose={onClose}>
@@ -69,6 +78,22 @@ export default function ThemeSettings({ onClose }: { onClose: () => void }) {
         <p className="theme-settings-note">
           探店和菜单共用主题，选择会保存在当前浏览器。
         </p>
+        <label className="map-setting">
+          <span>
+            <MapPin size={16} /> 地图服务
+          </span>
+          <select
+            aria-label="地图服务"
+            value={provider}
+            onChange={(event) =>
+              onProviderChange(event.target.value as MapProvider)
+            }
+          >
+            <option value="osm">OpenStreetMap</option>
+            <option value="google">Google 地图</option>
+            <option value="amap">高德地图</option>
+          </select>
+        </label>
         <button
           className="button primary theme-settings-done"
           type="button"

@@ -46,6 +46,7 @@ import OrderingMenu, { type Quantities } from "./OrderingMenu";
 import StoreExplorer from "./StoreExplorer";
 import BottomSheet from "./BottomSheet";
 import ThemeSettings from "./ThemeSettings";
+import { useTheme } from "./ThemeProvider";
 import { sheetStops, type SheetSnap } from "@/lib/sheet";
 import { Logo, EntryDetail } from "./EntryPresentation";
 const MapView = dynamic(() => import("./MapView"), {
@@ -62,6 +63,7 @@ const icons: Record<string, string> = {
   其他: "🍽️",
 };
 export default function Diary() {
+  const { theme } = useTheme();
   const [user, setUser] = useState<User | null>(null),
     [booting, setBooting] = useState(true),
     [fatal, setFatal] = useState(""),
@@ -235,6 +237,10 @@ export default function Diary() {
             : b.visitedAt.localeCompare(a.visitedAt),
         ),
     [source, category, favorites, query, sort, scope, privacy],
+  );
+  const mapEntries = useMemo(
+    () => (kind === "recipe" ? [] : filtered),
+    [kind, filtered],
   );
   function newEntry(point?: Location) {
     if (!user) {
@@ -423,7 +429,9 @@ export default function Diary() {
     setSnap(fromMap ? "half" : "collapsed");
   }
   const active = recipe ? undefined : filtered.find((e) => e.id === activeId);
-  const drawerHeight = sheetStops(viewport)[snap];
+  const drawerHeight = sheetStops(viewport, recipe && theme !== "classic")[
+    snap
+  ];
   const toolbar = (
     <>
       <div className="search-box">
@@ -494,12 +502,14 @@ export default function Diary() {
       <main className="workspace-map" aria-label="店铺地图">
         <MapView
           key={`${scope}:${demo}:${user?.id || "guest"}`}
-          entries={recipe ? [] : filtered}
+          entries={mapEntries}
           selectedId={active?.id}
           focus={active ? mapFocus : null}
           bottomInset={Math.min(drawerHeight + 20, viewport - 250)}
           topInset={88}
           provider={provider}
+          demo={demo}
+          showProvider={false}
           onProviderChange={changeProvider}
           onSelect={(id) => {
             const entry = filtered.find((e) => e.id === id);
@@ -621,6 +631,7 @@ export default function Diary() {
         </div>
       )}
       <BottomSheet
+        menu={recipe && theme !== "classic"}
         snap={snap}
         onSnap={setSnap}
         viewport={viewport}
@@ -693,7 +704,13 @@ export default function Diary() {
           </>
         )}
       </BottomSheet>
-      {settingsOpen && <ThemeSettings onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <ThemeSettings
+          provider={provider}
+          onProviderChange={changeProvider}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       {authOpen && (
         <Modal title="我的美味账户" onClose={() => setAuthOpen(false)}>
           <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />

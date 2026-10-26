@@ -16,6 +16,7 @@ type Props = {
   toolbar: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  menu?: boolean;
 };
 export default function BottomSheet(props: Props) {
   const [dragHeight, setDragHeight] = useState<number | null>(null);
@@ -25,7 +26,7 @@ export default function BottomSheet(props: Props) {
     last: number;
     moved: boolean;
   } | null>(null);
-  const stops = sheetStops(props.viewport),
+  const stops = sheetStops(props.viewport, props.menu),
     height = dragHeight ?? stops[props.snap];
   function move(direction: number) {
     const index = SHEET_SNAPS.indexOf(props.snap);
@@ -37,7 +38,7 @@ export default function BottomSheet(props: Props) {
     if (!cancel)
       props.onSnap(
         d.moved
-          ? nearestSheetSnap(d.last, props.viewport)
+          ? nearestSheetSnap(d.last, props.viewport, props.menu)
           : props.snap === "half"
             ? "expanded"
             : props.snap === "collapsed"

@@ -1,15 +1,25 @@
 export type SheetSnap = "collapsed" | "half" | "expanded";
 export const SHEET_SNAPS: SheetSnap[] = ["collapsed", "half", "expanded"];
-export function sheetStops(viewport: number): Record<SheetSnap, number> {
+export function sheetStops(
+  viewport: number,
+  menu = false,
+): Record<SheetSnap, number> {
   const available = Math.max(132, viewport - 86);
   return {
     collapsed: Math.min(106, available),
-    half: Math.min(available, Math.max(210, Math.round(viewport * 0.48))),
+    half: Math.min(
+      available,
+      Math.max(210, Math.round(viewport * (menu ? 0.72 : 0.48))),
+    ),
     expanded: available,
   };
 }
-export function nearestSheetSnap(height: number, viewport: number): SheetSnap {
-  const stops = sheetStops(viewport);
+export function nearestSheetSnap(
+  height: number,
+  viewport: number,
+  menu = false,
+): SheetSnap {
+  const stops = sheetStops(viewport, menu);
   return SHEET_SNAPS.reduce(
     (best, snap) =>
       Math.abs(stops[snap] - height) < Math.abs(stops[best] - height)

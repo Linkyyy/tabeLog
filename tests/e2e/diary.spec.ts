@@ -24,7 +24,9 @@ async function photo() {
 test("two modules, real registration/login, restaurant map and private illustrated recipe", async ({
   page,
 }) => {
-  await page.route(/tile\.openstreetmap\.org/, (r) => r.abort());
+  await page.route(/(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/, (r) =>
+    r.abort(),
+  );
   await page.goto("/");
   await page.getByRole("button", { name: "登录 / 注册" }).click();
   await page.getByRole("button", { name: "还没有账户？注册" }).click();
@@ -324,7 +326,9 @@ test("responsive module previews and login prompt without polluting real records
 test("fullscreen map and a draggable sheet, compact dropdown navigation on phone and desktop", async ({
   page,
 }) => {
-  await page.route(/tile\.openstreetmap\.org/, (r) => r.abort());
+  await page.route(/(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/, (r) =>
+    r.abort(),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByLabel("更多操作", { exact: true }).click();
@@ -434,7 +438,9 @@ test("touch swipes resize the sheet and recipe selection still exports a menu", 
     isMobile: true,
   });
   const page = await context.newPage();
-  await page.route(/tile\.openstreetmap\.org/, (r) => r.abort());
+  await page.route(/(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/, (r) =>
+    r.abort(),
+  );
   try {
     await page.goto("/");
     await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
@@ -531,7 +537,10 @@ test("all five themes switch in settings without losing menu state; saved appear
   page,
   context,
 }) => {
-  await page.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+  await page.route(
+    /(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/,
+    (route) => route.abort(),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
@@ -543,29 +552,19 @@ test("all five themes switch in settings without losing menu state; saved appear
     "height",
     "106px",
   );
-  // Leaflet can retain old zoom levels when offline. Read the foreground layer,
-  // rather than mistaking a retained fallback tile for the current viewport.
-  const visibleTile = () =>
-    map.locator(".leaflet-tile-container").evaluateAll((layers) => {
-      const front = layers.toSorted(
-        (a, b) =>
-          Number(getComputedStyle(b).zIndex) -
-          Number(getComputedStyle(a).zIndex),
-      )[0];
-      return front?.querySelector("img")?.getAttribute("src");
-    });
-  await expect.poll(visibleTile).toMatch(/tile\.openstreetmap\.org/);
-  const beforeZoom = await visibleTile();
+  const street = map.locator("path.basemap-road").first();
+  await expect(street).toHaveAttribute("d", /M/);
+  const beforeZoom = await street.getAttribute("d");
   await map.locator(".leaflet-control-zoom-in").click();
-  await expect.poll(visibleTile).not.toBe(beforeZoom);
+  await expect(street).not.toHaveAttribute("d", beforeZoom!);
   await expect(map).not.toHaveClass(/leaflet-zoom-anim/);
-  const tileBefore = await visibleTile();
+  const streetBefore = await street.getAttribute("d");
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await page.getByRole("radio", { name: "薄荷白", exact: true }).check();
   await page.getByRole("radio", { name: "珊瑚晴空", exact: true }).check();
   await page.getByRole("button", { name: "完成", exact: true }).click();
-  await expect.poll(visibleTile).toBe(tileBefore);
+  await expect(street).toHaveAttribute("d", streetBefore!);
   await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
   await page.getByRole("slider", { name: "清单抽屉高度" }).press("End");
   await page
@@ -579,7 +578,7 @@ test("all five themes switch in settings without losing menu state; saved appear
     page.getByRole("radio", { name: "珊瑚晴空", exact: true }),
   ).toBeChecked();
   for (const [name, id, background, chrome] of [
-    ["薄荷白", "mint", "rgb(242, 248, 245)", "#f2f8f5"],
+    ["薄荷白", "mint", "rgb(255, 255, 255)", "#f2f8f5"],
     ["午夜蓝", "midnight", "rgb(16, 23, 36)", "#101724"],
     ["雾紫银白", "lavender", "rgb(249, 250, 253)", "#f9fafd"],
     ["经典原色", "classic", "rgb(250, 249, 243)", "#f8f7f2"],
@@ -632,7 +631,10 @@ test("all five themes switch in settings without losing menu state; saved appear
   );
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   const tab = await context.newPage();
-  await tab.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+  await tab.route(
+    /(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/,
+    (route) => route.abort(),
+  );
   try {
     await tab.goto("/");
     await expect(tab.locator("html")).toHaveAttribute("data-theme", "midnight");
@@ -697,7 +699,10 @@ test("theme loads before hydration, rejects invalid preferences, and still switc
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.route(/tile\.openstreetmap\.org/, (route) => route.abort());
+    await page.route(
+      /(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/,
+      (route) => route.abort(),
+    );
     await page.goto("/");
     await page.getByLabel("更多操作", { exact: true }).click();
     await page.getByRole("button", { name: "设置", exact: true }).click();
@@ -712,4 +717,78 @@ test("theme loads before hydration, rejects invalid preferences, and still switc
   } finally {
     await context.close();
   }
+});
+
+test("proposed appearance includes actual demo cartography, photo covers and map space; real records never get demo geometry", async ({
+  page,
+}) => {
+  const writes: string[] = [];
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (request.url().includes("/api/entries") && request.method() !== "GET")
+      writes.push(request.method());
+  });
+  await page.route(
+    /(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/,
+    (route) => route.abort(),
+  );
+  await page.route(/maps\.googleapis\.com|webapi\.amap\.com/, (route) =>
+    route.abort(),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await page.getByLabel("更多操作", { exact: true }).click();
+  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  const map = page.locator(".workspace-map .has-demo-basemap");
+  await expect(map.locator("path.basemap-building")).toHaveCount(1);
+  await expect(map.locator("path.basemap-park")).toHaveCount(1);
+  await expect(map.locator("path.basemap-water")).toHaveCount(3);
+  await expect(map.getByText("黄浦江", { exact: true })).toBeVisible();
+  await expect(map.getByText("上海示例底图", { exact: false })).toBeVisible();
+  await expect(page.locator(".map-shell")).toHaveCSS(
+    "background-image",
+    "none",
+  );
+  const sheet = page.getByRole("region", { name: "菜品抽屉" });
+  await expect(sheet).toHaveCSS("height", "608px");
+  expect((await sheet.boundingBox())!.y).toBeGreaterThan(200);
+  expect(
+    (await map.getByText("东方明珠", { exact: true }).boundingBox())!.y,
+  ).toBeLessThan((await sheet.boundingBox())!.y);
+  await expect(page.getByAltText("番茄慢炖牛腩的美食照片")).toHaveJSProperty(
+    "naturalWidth",
+    720,
+  );
+  await page.getByLabel("更多操作", { exact: true }).click();
+  await page.getByRole("button", { name: "设置", exact: true }).click();
+  const water = map.locator("path.basemap-water").first();
+  for (const [name, color] of [
+    ["午夜蓝", "rgb(30, 72, 122)"],
+    ["雾紫银白", "rgb(197, 196, 239)"],
+    ["珊瑚晴空", "rgb(177, 220, 231)"],
+  ]) {
+    await page.getByRole("radio", { name, exact: true }).check();
+    await expect(water).toHaveCSS("fill", color);
+  }
+  await expect(page.getByLabel("地图服务", { exact: true })).toHaveValue("osm");
+  await page.getByLabel("地图服务", { exact: true }).selectOption("google");
+  await expect(page.locator(".map-error")).toBeVisible();
+  await page.getByLabel("地图服务", { exact: true }).selectOption("osm");
+  await expect(map.locator("path.basemap-road").first()).toHaveAttribute(
+    "d",
+    /M/,
+  );
+  await page.getByRole("button", { name: "完成", exact: true }).click();
+  await page.getByLabel("模块切换", { exact: true }).selectOption("visit");
+  const photo = page.getByAltText("巷口的面包房的美食照片", { exact: true });
+  await expect(photo).toHaveAttribute("src", "/demo/coffee.webp");
+  await expect(photo).toHaveJSProperty("naturalWidth", 720);
+  await page.getByLabel("更多操作", { exact: true }).click();
+  await page.getByRole("button", { name: "结束示例漫游", exact: true }).click();
+  await expect(page.locator(".has-demo-basemap")).toHaveCount(0);
+  await expect(page.locator(".basemap-road")).toHaveCount(0);
+  expect(writes).toEqual([]);
+  expect(errors).toEqual([]);
 });

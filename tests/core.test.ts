@@ -113,6 +113,9 @@ test("sheet stops fit small and large viewports; drag distances snap predictably
   assert.equal(nearestSheetSnap(720, 844), "expanded");
   assert.equal(nearestSheetSnap(390, 844), "half");
   assert.equal(nearestSheetSnap(115, 844), "collapsed");
+  assert.equal(sheetStops(844, true).half, 608);
+  assert.equal(nearestSheetSnap(600, 844, true), "half");
+  assert.equal(nearestSheetSnap(730, 844, true), "expanded");
   for (const viewport of [320, 568, 844, 1000]) {
     const s = sheetStops(viewport);
     assert.ok(s.collapsed < s.half);
