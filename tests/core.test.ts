@@ -63,7 +63,7 @@ test("accounts normalize email and enforce password length", () => {
     parseCredentials(
       {
         email: "  ALICE@example.com ",
-        password: "a-long-password",
+        password: "Abcd1234",
         name: "Alice",
       },
       true,
@@ -78,6 +78,35 @@ test("accounts normalize email and enforce password length", () => {
   );
   assert.throws(() =>
     parseCredentials({ email: "a@example.com", password: "short" }),
+  );
+  for (const password of [
+    "Abc1234",
+    "abcdefgh",
+    "12345678",
+    "Abcd123!",
+    "中文abc123",
+    "Abcd 1234",
+  ]) {
+    assert.throws(() =>
+      parseCredentials(
+        { email: "a@example.com", name: "Alice", password },
+        true,
+      ),
+    );
+  }
+  assert.equal(
+    parseCredentials(
+      { email: "a@example.com", name: "Alice", password: "Abcd1234" },
+      true,
+    ).password,
+    "Abcd1234",
+  );
+  assert.equal(
+    parseCredentials({
+      email: "a@example.com",
+      password: "old-password-with-symbols!",
+    }).password,
+    "old-password-with-symbols!",
   );
 });
 test("recipes validate ingredients, steps and metadata; visibility defaults to private", () => {

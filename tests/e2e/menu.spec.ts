@@ -25,7 +25,7 @@ async function signup(context: BrowserContext, prefix: string): Promise<User> {
       action: "register",
       name: prefix,
       email: `${prefix}@example.com`,
-      password: "menu-test-password-12345",
+      password: "MenuTest12345",
     },
   });
   expect(response.status()).toBe(201);
@@ -224,7 +224,7 @@ test("recipe tools preview controlled AI output, edit and import it, and directl
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await page.getByRole("link", { name: "我的菜单", exact: true }).click();
   await page
     .getByRole("button", { name: "AI 生成 / 导入", exact: true })
     .click();
@@ -273,7 +273,7 @@ test("recipe tools preview controlled AI output, edit and import it, and directl
     page.getByRole("button", { name: "文件里的家常菜", exact: true }),
   ).toBeVisible();
   await page.reload();
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await page.getByRole("link", { name: "我的菜单", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "编辑后的时蔬", exact: true }),
   ).toBeVisible();
@@ -301,7 +301,7 @@ test("QR menu opens on phones, submits real guest orders and the owner processes
       (r) => r.abort(),
     );
     await page.goto("/");
-    await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+    await page.getByRole("link", { name: "我的菜单", exact: true }).click();
     await page.getByRole("button", { name: "点餐二维码", exact: true }).click();
     await expect(
       page.getByLabel("分享 私人厨房实验", { exact: true }),

@@ -10,8 +10,10 @@ export function parseCredentials(value: unknown, register = false) {
   const password = typeof v.password === "string" ? v.password : "";
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     throw new AppError("请输入有效的邮箱地址");
-  if (password.length < 12 || password.length > 128)
-    throw new AppError("密码需要 12–128 个字符");
+  if (password.length < 8 || password.length > 128)
+    throw new AppError("密码需要 8–128 个字符");
+  if (register && !/^(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]+$/.test(password))
+    throw new AppError("密码请使用英文字母和数字，且两者都要包含");
   const name = typeof v.name === "string" ? v.name.trim() : "";
   if (register && (name.length < 2 || name.length > 30))
     throw new AppError("昵称需要 2–30 个字符");

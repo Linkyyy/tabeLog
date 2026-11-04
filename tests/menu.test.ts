@@ -8,6 +8,28 @@ import {
 } from "../lib/ai-providers";
 import { parseRecipes, parseRecipeText } from "../lib/recipe-import";
 import { parseOrder } from "../lib/order-validation";
+import { drawDishes } from "../lib/draw";
+test("meal draws use only available dishes, never repeat a dish and preserve the source menu", () => {
+  const dishes = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+  const original = [...dishes];
+  for (const random of [() => 0, () => 0.3, () => 0.999999]) {
+    const result = drawDishes(dishes, 3, random);
+    assert.equal(result.length, 3);
+    assert.equal(new Set(result.map((d) => d.id)).size, 3);
+    assert.ok(result.every((d) => dishes.includes(d)));
+    assert.deepEqual(dishes, original);
+  }
+  assert.equal(drawDishes(dishes, 10).length, 4);
+  assert.deepEqual(drawDishes([], 3), []);
+  assert.deepEqual(drawDishes(dishes, 0), []);
+  assert.deepEqual(
+    drawDishes(
+      dishes.filter((d) => d.id === "b"),
+      3,
+    ),
+    [dishes[1]],
+  );
+});
 const dish = {
   name: "番茄炒蛋",
   ingredients: ["番茄 2 个", "鸡蛋 3 个"],

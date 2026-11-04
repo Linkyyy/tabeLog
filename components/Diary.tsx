@@ -7,6 +7,8 @@ import {
   type CSSProperties,
 } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowDownUp,
   ArrowRight,
@@ -31,6 +33,7 @@ import {
   Settings,
   QrCode,
   ClipboardList,
+  Dices,
 } from "lucide-react";
 import type {
   Entry,
@@ -50,7 +53,8 @@ import BottomSheet from "./BottomSheet";
 import ThemeSettings from "./ThemeSettings";
 import MenuStudio from "./MenuStudio";
 import MenuSharing from "./MenuSharing";
-import { useTheme } from "./ThemeProvider";
+import MenuSurface from "./MenuSurface";
+import MealDraw from "./MealDraw";
 import { sheetStops, type SheetSnap } from "@/lib/sheet";
 import { Logo, EntryDetail } from "./EntryPresentation";
 const MapView = dynamic(() => import("./MapView"), {
@@ -67,14 +71,15 @@ const icons: Record<string, string> = {
   其他: "🍽️",
 };
 export default function Diary() {
-  const { theme } = useTheme();
+  const pathname = usePathname();
+  const router = useRouter();
+  const kind: EntryKind = pathname === "/map" ? "visit" : "recipe";
   const [user, setUser] = useState<User | null>(null),
     [booting, setBooting] = useState(true),
     [fatal, setFatal] = useState(""),
     [registrationOpen, setRegistrationOpen] = useState(true),
     [authOpen, setAuthOpen] = useState(false);
-  const [kind, setKind] = useState<EntryKind>("visit"),
-    [scope, setScope] = useState<"mine" | "public">("public"),
+  const [scope, setScope] = useState<"mine" | "public">("public"),
     [provider, setProvider] = useState<MapProvider>("osm");
   const [entries, setEntries] = useState<Entry[]>([]),
     [loading, setLoading] = useState(false),
@@ -96,6 +101,7 @@ export default function Diary() {
   const [activeId, setActiveId] = useState<string>();
   const [mapFocus, setMapFocus] = useState<Location | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [drawOpen, setDrawOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState<"generate" | "settings" | null>(
     null,
   );
@@ -111,7 +117,7 @@ export default function Diary() {
     else setSharingOpen(tool);
   }
   function recipesImported(imported: Entry[]) {
-    setKind("recipe");
+    if (kind !== "recipe") router.push("/menu");
     setScope("mine");
     setDemo(false);
     setSnap("half");
@@ -207,13 +213,18 @@ export default function Diary() {
     setFavorites(false);
     setPrivacy("all");
   }
-  function changeKind(next: EntryKind) {
-    setKind(next);
+  useEffect(() => {
     setSnap("half");
     setActiveId(undefined);
     setSelected(null);
+    setFormOpen(false);
+    setEditing(undefined);
+    setDrawOpen(false);
+    setStudioOpen(null);
+    setSharingOpen(null);
+    setAuthOpen(false);
     filtersReset();
-  }
+  }, [kind]);
   function changeScope(next: "mine" | "public") {
     setScope(next);
     setActiveId(undefined);
@@ -370,6 +381,7 @@ export default function Diary() {
     });
   }
   const recipe = kind === "recipe";
+  const Panel = recipe ? MenuSurface : BottomSheet;
   if (booting)
     return (
       <main className="boot-screen">
@@ -460,9 +472,9 @@ export default function Diary() {
     setSnap(fromMap ? "half" : "collapsed");
   }
   const active = recipe ? undefined : filtered.find((e) => e.id === activeId);
-  const drawerHeight = sheetStops(viewport, recipe && theme !== "classic")[
-    snap
-  ];
+  const drawerHeight = recipe
+    ? Math.max(132, viewport - 86)
+    : sheetStops(viewport)[snap];
   const toolbar = (
     <>
       <div className="search-box">
@@ -494,6 +506,15 @@ export default function Diary() {
   );
   const filters = (
     <div className="sheet-filters">
+      <select
+        className="space-select"
+        aria-label="浏览空间"
+        value={scope}
+        onChange={(e) => changeScope(e.target.value as "mine" | "public")}
+      >
+        <option value="mine">我的空间</option>
+        <option value="public">美味广场</option>
+      </select>
       {scope === "mine" && (
         <select
           aria-label="可见范围筛选"
@@ -526,53 +547,53 @@ export default function Diary() {
   );
   return (
     <div
-      className={`ordering-app map-application ${recipe ? "recipe-mode" : "visit-mode"}`}
-      data-sheet-snap={snap}
+      className={`ordering-app map-application ${recipe ? "menu-application recipe-mode" : "visit-mode"}`}
+      data-sheet-snap={recipe ? undefined : snap}
       style={{ "--drawer-height": `${drawerHeight}px` } as CSSProperties}
     >
-      <main className="workspace-map" aria-label="店铺地图">
-        <MapView
-          key={`${scope}:${demo}:${user?.id || "guest"}`}
-          entries={mapEntries}
-          selectedId={active?.id}
-          focus={active ? mapFocus : null}
-          bottomInset={Math.min(drawerHeight + 20, viewport - 250)}
-          topInset={88}
-          provider={provider}
-          demo={demo}
-          showProvider={false}
-          onProviderChange={changeProvider}
-          onSelect={(id) => {
-            const entry = filtered.find((e) => e.id === id);
-            if (entry) focusStore(entry, true);
-          }}
-        />
-      </main>
+      {!recipe && (
+        <main className="workspace-map" aria-label="店铺地图">
+          <MapView
+            key={`${scope}:${demo}:${user?.id || "guest"}`}
+            entries={mapEntries}
+            selectedId={active?.id}
+            focus={active ? mapFocus : null}
+            bottomInset={Math.min(drawerHeight + 20, viewport - 250)}
+            topInset={88}
+            provider={provider}
+            demo={demo}
+            showProvider={false}
+            onProviderChange={changeProvider}
+            onSelect={(id) => {
+              const entry = filtered.find((e) => e.id === id);
+              if (entry) focusStore(entry, true);
+            }}
+          />
+        </main>
+      )}
       <header className="map-topbar">
-        <a href="/" className="compact-brand" aria-label="tabeLog 首页">
+        <Link href="/menu" className="compact-brand" aria-label="tabeLog 首页">
           <Utensils size={20} />
           <span>tabeLog</span>
-        </a>
-        <label className="module-select">
-          {recipe ? <ChefHat size={16} /> : <MapPin size={16} />}
-          <select
-            aria-label="模块切换"
-            value={kind}
-            onChange={(e) => changeKind(e.target.value as EntryKind)}
+        </Link>
+        <nav className="workspace-tabs" aria-label="主导航">
+          <Link
+            href="/menu"
+            prefetch={false}
+            aria-current={recipe ? "page" : undefined}
           >
-            <option value="visit">探店日记</option>
-            <option value="recipe">我的菜单</option>
-          </select>
-        </label>
-        <select
-          className="space-select"
-          aria-label="浏览空间"
-          value={scope}
-          onChange={(e) => changeScope(e.target.value as "mine" | "public")}
-        >
-          <option value="mine">我的空间</option>
-          <option value="public">美味广场</option>
-        </select>
+            <ChefHat size={16} />
+            <span>我的菜单</span>
+          </Link>
+          <Link
+            href="/map"
+            prefetch={false}
+            aria-current={!recipe ? "page" : undefined}
+          >
+            <MapPin size={16} />
+            <span>美食地图</span>
+          </Link>
+        </nav>
         <div className="topbar-actions">
           <button
             className="topbar-icon topbar-add"
@@ -679,36 +700,42 @@ export default function Diary() {
           </button>
         </div>
       )}
-      <BottomSheet
-        menu={recipe && theme !== "classic"}
+      <Panel
         snap={snap}
         onSnap={setSnap}
         viewport={viewport}
-        label={recipe ? "菜品抽屉" : "店铺抽屉"}
+        label={recipe ? "我的菜单" : "店铺抽屉"}
         summary={`${filtered.length} ${recipe ? "道菜" : "家店"}`}
         toolbar={toolbar}
       >
+        {recipe && (
+          <div className="menu-tools" aria-label="我的菜单工具">
+            <button onClick={() => setDrawOpen(true)}>
+              <Dices size={15} />
+              <span>今天吃什么</span>
+            </button>
+            <button
+              aria-label="AI 生成 / 导入"
+              onClick={() => openMenuTool("generate")}
+            >
+              <Sparkles size={15} />
+              <span>AI 菜谱</span>
+            </button>
+            <button onClick={() => openMenuTool("share")}>
+              <QrCode size={15} />
+              <span>点餐二维码</span>
+            </button>
+            <button onClick={() => openMenuTool("orders")}>
+              <ClipboardList size={15} />
+              <span>收到的点餐</span>
+            </button>
+          </div>
+        )}
+        {filters}
         {scope === "mine" && !user && !demo ? (
           <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />
         ) : (
           <>
-            {recipe && (
-              <div className="menu-tools" aria-label="我的菜单工具">
-                <button onClick={() => openMenuTool("generate")}>
-                  <Sparkles size={15} />
-                  <span>AI 生成 / 导入</span>
-                </button>
-                <button onClick={() => openMenuTool("share")}>
-                  <QrCode size={15} />
-                  <span>点餐二维码</span>
-                </button>
-                <button onClick={() => openMenuTool("orders")}>
-                  <ClipboardList size={15} />
-                  <span>收到的点餐</span>
-                </button>
-              </div>
-            )}
-            {filters}
             {error && (
               <div className="error-banner" role="alert">
                 <AlertCircle size={16} />
@@ -768,7 +795,33 @@ export default function Diary() {
             )}
           </>
         )}
-      </BottomSheet>
+      </Panel>
+      {drawOpen && recipe && (
+        <MealDraw
+          items={filtered}
+          demo={demo}
+          onClose={() => setDrawOpen(false)}
+          onOpen={(entry) => {
+            setDrawOpen(false);
+            setSelected(entry);
+          }}
+          onNew={() => {
+            setDrawOpen(false);
+            newEntry();
+          }}
+          onAdd={(dishes) => {
+            setQuantities((current) => {
+              const next = { ...current };
+              for (const dish of dishes)
+                if (source.some((e) => e.id === dish.id))
+                  next[dish.id] = Math.min(20, (next[dish.id] || 0) + 1);
+              return next;
+            });
+            setDrawOpen(false);
+            notify(`已将 ${dishes.length} 道菜加入今日菜单。`);
+          }}
+        />
+      )}
       {settingsOpen && (
         <ThemeSettings
           provider={provider}

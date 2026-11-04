@@ -6,7 +6,9 @@
 
 <img src="guest-menu-mobile.png" alt="手机扫码点餐菜单" width="320" /> <img src="guest-checkout.png" alt="确认点餐与填写忌口" width="320" />
 
-<img src="order-submitted.png" alt="点餐成功回执" width="320" /> <img src="menu-tools-mobile.png" alt="我的菜单中的 AI 与点餐工具入口（示例地图）" width="320" />
+<img src="order-submitted.png" alt="点餐成功回执" width="320" /> <img src="menu-tools-mobile.png" alt="我的菜单：抽签、AI 与点餐工具入口" width="320" />
+
+我的菜单位于 `/menu`，默认首页进入此页面；不显示地图。美食地图独立使用 `/map`，通过顶部按钮切换。
 
 ## 分享与接单
 

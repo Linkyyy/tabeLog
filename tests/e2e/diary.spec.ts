@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { DatabaseSync } from "node:sqlite";
 const origin = "http://127.0.0.1:3100";
 const headers = { Origin: origin };
-const password = "a-test-password-12345";
+const password = "Abcd1234";
 const legacyId = "00000000-0000-0000-0000-000000000001";
 
 async function signup(context: BrowserContext, email: string, name: string) {
@@ -21,13 +21,13 @@ async function photo() {
     .png()
     .toBuffer();
 }
-test("two modules, real registration/login, restaurant map and private illustrated recipe", async ({
+test("two routes, eight-character registration/login, restaurant map and private illustrated recipe", async ({
   page,
 }) => {
   await page.route(/(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/, (r) =>
     r.abort(),
   );
-  await page.goto("/");
+  await page.goto("/map");
   await page.getByRole("button", { name: "登录 / 注册" }).click();
   await page.getByRole("button", { name: "还没有账户？注册" }).click();
   await page.getByLabel("昵称", { exact: true }).fill("小厨同学");
@@ -53,7 +53,7 @@ test("two modules, real registration/login, restaurant map and private illustrat
   await expect(
     page.getByRole("button", { name: "旬味食堂", exact: true }),
   ).toBeVisible();
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await page.getByRole("link", { name: "我的菜单", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "你的拿手菜，值得被记住。" }),
   ).toBeVisible();
@@ -82,7 +82,7 @@ test("two modules, real registration/login, restaurant map and private illustrat
   await page.getByRole("button", { name: "保存这份美味" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.reload();
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await page.getByRole("link", { name: "我的菜单", exact: true }).click();
   await page
     .getByRole("button", { name: "番茄牛腩 · 我的拿手菜", exact: true })
     .click();
@@ -122,7 +122,7 @@ test("two modules, real registration/login, restaurant map and private illustrat
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByLabel("模块切换", { exact: true }).selectOption("visit");
+  await page.getByRole("link", { name: "美食地图", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "旬味食堂", exact: true }),
   ).toBeVisible();
@@ -231,7 +231,7 @@ test("private/public access isolation, photos, ownership, share revocation, sess
     const reader = await bob.newPage();
     await reader.goto("/");
     await reader.getByLabel("浏览空间", { exact: true }).selectOption("public");
-    await reader.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+    await reader.getByRole("link", { name: "我的菜单", exact: true }).click();
     await reader.getByRole("button", { name: entry.name, exact: true }).click();
     await expect(reader.getByRole("button", { name: "编辑日记" })).toHaveCount(
       0,
@@ -298,10 +298,12 @@ test("responsive module previews and login prompt without polluting real records
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await page.getByRole("link", { name: "我的菜单", exact: true }).click();
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
-  await page.getByRole("slider", { name: "清单抽屉高度" }).press("End");
+  await expect(page.getByRole("slider", { name: "清单抽屉高度" })).toHaveCount(
+    0,
+  );
   await expect(page.getByText("你正在浏览示例菜谱")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "番茄慢炖牛腩", exact: true }),
@@ -323,14 +325,14 @@ test("responsive module previews and login prompt without polluting real records
   await expect(page.getByLabel("邮箱", { exact: true })).toBeVisible();
 });
 
-test("fullscreen map and a draggable sheet, compact dropdown navigation on phone and desktop", async ({
+test("fullscreen food map retains its draggable sheet and uses route navigation on phone and desktop", async ({
   page,
 }) => {
   await page.route(/(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/, (r) =>
     r.abort(),
   );
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/map");
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
   const map = page.getByRole("main", { name: "店铺地图" }),
@@ -416,20 +418,22 @@ test("fullscreen map and a draggable sheet, compact dropdown navigation on phone
         document.documentElement.scrollHeight,
       ]),
     ).toEqual([width, height]);
-    await expect(page.getByLabel("模块切换", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "主导航" }),
+    ).toBeVisible();
   }
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
-  const menu = page.getByRole("region", { name: "菜品抽屉" });
-  await slider.press("End");
-  await expect(menu).toHaveAttribute("data-snap", "expanded");
+  await page.getByRole("link", { name: "我的菜单", exact: true }).click();
+  const menu = page.getByRole("main", { name: "我的菜单", exact: true });
+  await expect(menu).toBeVisible();
+  await expect(page).toHaveURL(/\/menu$/);
   await expect(
     page.getByRole("complementary", { name: "菜品分类" }),
   ).toBeVisible();
-  await expect(page.getByRole("main", { name: "店铺地图" })).toBeVisible();
+  await expect(page.getByRole("main", { name: "店铺地图" })).toHaveCount(0);
   await expect(page.locator("h1")).toHaveCount(0);
 });
 
-test("touch swipes resize the sheet and recipe selection still exports a menu", async ({
+test("touch swipes resize the food map sheet; the separate menu retains selections and exports", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -442,13 +446,12 @@ test("touch swipes resize the sheet and recipe selection still exports a menu", 
     r.abort(),
   );
   try {
-    await page.goto("/");
-    await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+    await page.goto("/map");
     await page.getByLabel("更多操作", { exact: true }).click();
     await page
       .getByRole("button", { name: "浏览示例日记", exact: true })
       .click();
-    const sheet = page.getByRole("region", { name: "菜品抽屉" });
+    const sheet = page.getByRole("region", { name: "店铺抽屉" });
     const slider = page.getByRole("slider", { name: "清单抽屉高度" });
     await expect(sheet).toHaveAttribute("data-snap", "half");
     const handle = await slider.boundingBox();
@@ -469,6 +472,7 @@ test("touch swipes resize the sheet and recipe selection still exports a menu", 
       touchPoints: [],
     });
     await expect(sheet).toHaveAttribute("data-snap", "expanded");
+    await page.getByRole("link", { name: "我的菜单", exact: true }).click();
     const beef = page.getByRole("article", {
       name: "菜品 番茄慢炖牛腩",
       exact: true,
@@ -513,9 +517,8 @@ test("touch swipes resize the sheet and recipe selection still exports a menu", 
     expect(text).toContain("牛腩 500 克");
     expect(text).not.toContain("一人份的日式咖喱");
     await dialog.getByRole("button", { name: "关闭", exact: true }).click();
-    await page.getByLabel("模块切换", { exact: true }).selectOption("visit");
-    await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
-    await slider.press("End");
+    await page.getByRole("link", { name: "美食地图", exact: true }).click();
+    await page.getByRole("link", { name: "我的菜单", exact: true }).click();
     await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
       "已选 2 道菜，共 2 份",
     );
@@ -542,7 +545,7 @@ test("all five themes switch in settings without losing menu state; saved appear
     (route) => route.abort(),
   );
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/map");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
@@ -565,12 +568,11 @@ test("all five themes switch in settings without losing menu state; saved appear
   await page.getByRole("radio", { name: "珊瑚晴空", exact: true }).check();
   await page.getByRole("button", { name: "完成", exact: true }).click();
   await expect(street).toHaveAttribute("d", streetBefore!);
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
-  await page.getByRole("slider", { name: "清单抽屉高度" }).press("End");
+  await page.getByRole("link", { name: "我的菜单", exact: true }).click();
   await page
     .getByRole("button", { name: "加入菜单 番茄慢炖牛腩", exact: true })
     .click();
-  const sheet = page.getByRole("region", { name: "菜品抽屉" });
+  const sheet = page.getByRole("main", { name: "我的菜单", exact: true });
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page.getByRole("radio")).toHaveCount(5);
@@ -579,9 +581,9 @@ test("all five themes switch in settings without losing menu state; saved appear
   ).toBeChecked();
   for (const [name, id, background, chrome] of [
     ["薄荷白", "mint", "rgb(255, 255, 255)", "#f2f8f5"],
-    ["午夜蓝", "midnight", "rgb(16, 23, 36)", "#101724"],
-    ["雾紫银白", "lavender", "rgb(249, 250, 253)", "#f9fafd"],
-    ["经典原色", "classic", "rgb(250, 249, 243)", "#f8f7f2"],
+    ["午夜蓝", "midnight", "rgb(26, 36, 52)", "#101724"],
+    ["雾紫银白", "lavender", "rgb(255, 255, 255)", "#f9fafd"],
+    ["经典原色", "classic", "rgb(255, 254, 250)", "#f8f7f2"],
     ["珊瑚晴空", "coral", "rgb(255, 255, 255)", "#ffffff"],
   ]) {
     await page.getByRole("radio", { name, exact: true }).check();
@@ -591,7 +593,9 @@ test("all five themes switch in settings without losing menu state; saved appear
       "content",
       chrome,
     );
-    await expect(sheet).toHaveAttribute("data-snap", "expanded");
+    await expect(
+      page.getByRole("link", { name: "我的菜单", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
     expect(
       await page.evaluate(() => localStorage.getItem("tabelog-theme")),
     ).toBe(id);
@@ -624,6 +628,7 @@ test("all five themes switch in settings without losing menu state; saved appear
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await signup(context, "themes@example.com", "主题试吃员");
   await page.reload();
+  await page.getByRole("link", { name: "美食地图", exact: true }).click();
   await page.getByRole("button", { name: "记一笔", exact: true }).click();
   await expect(page.getByRole("dialog").getByLabel("店铺名称")).toHaveCSS(
     "background-color",
@@ -712,35 +717,51 @@ test("theme loads before hydration, rejects invalid preferences, and still switc
       "midnight",
     );
     await page.getByRole("button", { name: "完成", exact: true }).click();
-    await expect(page.getByLabel("模块切换", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "主导航" }),
+    ).toBeVisible();
     expect(errors).toEqual([]);
   } finally {
     await context.close();
   }
 });
 
-test("proposed appearance includes actual demo cartography, photo covers and map space; real records never get demo geometry", async ({
+test("menu omits all map rendering; food map keeps demo cartography, themes and provider fallbacks", async ({
   page,
 }) => {
   const writes: string[] = [];
   const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("request", (request) => {
-    if (request.url().includes("/api/entries") && request.method() !== "GET")
-      writes.push(request.method());
+  const tileRequests: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("request", (r) => {
+    if (r.url().includes("/api/entries") && r.method() !== "GET")
+      writes.push(r.method());
+    if (/tile\.openstreetmap\.org|basemaps\.cartocdn\.com/.test(r.url()))
+      tileRequests.push(r.url());
   });
   await page.route(
-    /(tile\.openstreetmap\.org|basemaps\.cartocdn\.com)/,
-    (route) => route.abort(),
-  );
-  await page.route(/maps\.googleapis\.com|webapi\.amap\.com/, (route) =>
-    route.abort(),
+    /tile\.openstreetmap\.org|basemaps\.cartocdn\.com|maps\.googleapis\.com|webapi\.amap\.com/,
+    (r) => r.abort(),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByLabel("模块切换", { exact: true }).selectOption("recipe");
+  await expect(page).toHaveURL(/\/menu$/);
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  const menu = page.getByRole("main", { name: "我的菜单", exact: true });
+  await expect(menu).toBeVisible();
+  await expect(
+    page.locator(".workspace-map,.map-shell,.leaflet-container"),
+  ).toHaveCount(0);
+  expect(tileRequests).toEqual([]);
+  expect((await menu.boundingBox())!.y).toBeLessThan(100);
+  expect((await menu.boundingBox())!.height).toBeGreaterThan(700);
+  await expect(page.getByAltText("番茄慢炖牛腩的美食照片")).toHaveJSProperty(
+    "naturalWidth",
+    720,
+  );
+  await page.getByRole("link", { name: "美食地图", exact: true }).click();
+  await expect(page).toHaveURL(/\/map$/);
   const map = page.locator(".workspace-map .has-demo-basemap");
   await expect(map.locator("path.basemap-building")).toHaveCount(1);
   await expect(map.locator("path.basemap-park")).toHaveCount(1);
@@ -750,16 +771,6 @@ test("proposed appearance includes actual demo cartography, photo covers and map
   await expect(page.locator(".map-shell")).toHaveCSS(
     "background-image",
     "none",
-  );
-  const sheet = page.getByRole("region", { name: "菜品抽屉" });
-  await expect(sheet).toHaveCSS("height", "608px");
-  expect((await sheet.boundingBox())!.y).toBeGreaterThan(200);
-  expect(
-    (await map.getByText("东方明珠", { exact: true }).boundingBox())!.y,
-  ).toBeLessThan((await sheet.boundingBox())!.y);
-  await expect(page.getByAltText("番茄慢炖牛腩的美食照片")).toHaveJSProperty(
-    "naturalWidth",
-    720,
   );
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "设置", exact: true }).click();
@@ -781,14 +792,101 @@ test("proposed appearance includes actual demo cartography, photo covers and map
     /M/,
   );
   await page.getByRole("button", { name: "完成", exact: true }).click();
-  await page.getByLabel("模块切换", { exact: true }).selectOption("visit");
   const photo = page.getByAltText("巷口的面包房的美食照片", { exact: true });
   await expect(photo).toHaveAttribute("src", "/demo/coffee.webp");
   await expect(photo).toHaveJSProperty("naturalWidth", 720);
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "结束示例漫游", exact: true }).click();
-  await expect(page.locator(".has-demo-basemap")).toHaveCount(0);
-  await expect(page.locator(".basemap-road")).toHaveCount(0);
+  await expect(page.locator(".has-demo-basemap,.basemap-road")).toHaveCount(0);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("default menu route, navigation, filtered meal draws and basket state work without map requests", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const writes: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/api/entries") && r.method() !== "GET")
+      writes.push(r.method());
+  });
+  await page.route(/tile\.openstreetmap\.org|basemaps\.cartocdn\.com/, (r) =>
+    r.abort(),
+  );
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(
+    page.getByRole("link", { name: "我的菜单", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(page.getByLabel("模块切换", { exact: true })).toHaveCount(0);
+  await page.getByLabel("更多操作", { exact: true }).click();
+  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.locator(".workspace-map,.map-bottom-sheet")).toHaveCount(
+      0,
+    );
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(width);
+    await expect(
+      page.getByRole("link", { name: "美食地图", exact: true }),
+    ).toBeVisible();
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await page.getByRole("radio", { name: "抽 3 道菜", exact: true }).check();
+  await page.getByRole("button", { name: "开始抽签", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "抽签中…", exact: true }),
+  ).toBeDisabled();
+  const results = page.getByRole("list", { name: "抽签结果" }).locator("li");
+  await expect(results).toHaveCount(3);
+  const names = await results.locator("h3").allTextContents();
+  expect(new Set(names).size).toBe(3);
+  await page.getByRole("button", { name: "加入今日菜单", exact: true }).click();
+  await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
+    "已选 3 道菜，共 3 份",
+  );
+  await page
+    .getByRole("complementary", { name: "菜品分类" })
+    .getByRole("button", { name: /甜点/ })
+    .click();
+  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await expect(
+    page.getByRole("radio", { name: "抽 2 道菜", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "开始抽签", exact: true }).click();
+  await expect(page.getByRole("list", { name: "抽签结果" })).toContainText(
+    "抹茶巴斯克",
+  );
+  await expect(results).toHaveCount(1);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "查看做法", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("食材清单");
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByLabel("搜索日记").fill("不存在的食物");
+  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("当前没有可抽取的菜谱");
+  await expect(
+    page.getByRole("button", { name: "开始抽签", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByRole("link", { name: "美食地图", exact: true }).click();
+  await expect(page).toHaveURL(/\/map$/);
+  await expect(page.getByRole("main", { name: "店铺地图" })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
+    "共 3 份",
+  );
+  await expect(page.locator(".workspace-map")).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "查看菜单", exact: true }),
+  ).toBeDisabled();
+  expect(writes).toEqual([]);
 });

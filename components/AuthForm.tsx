@@ -83,13 +83,22 @@ export default function AuthForm({
           autoComplete={register ? "new-password" : "current-password"}
           type="password"
           required
-          minLength={12}
+          minLength={8}
           maxLength={128}
-          placeholder="至少 12 个字符"
+          pattern={
+            register ? "(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]+" : undefined
+          }
+          title={register ? "至少 8 位，包含英文字母和数字" : undefined}
+          placeholder={
+            register ? "至少 8 位，英文字母 + 数字" : "请输入登录密码"
+          }
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
       </label>
+      {register && (
+        <p className="password-hint">至少 8 位，英文字母和数字都要包含。</p>
+      )}
       {error && (
         <p className="form-error" role="alert">
           {error}
