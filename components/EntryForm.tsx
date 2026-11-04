@@ -12,6 +12,12 @@ import {
 } from "lucide-react";
 import Modal from "./Modal";
 import VisibilityPicker from "./VisibilityPicker";
+import RecipeAssistant from "./RecipeAssistant";
+import PriceFields from "./PriceFields";
+import {
+  applyRecipeSuggestion,
+  undoRecipeSuggestion,
+} from "@/lib/recipe-suggestion";
 import {
   CUISINES,
   type Entry,
@@ -63,7 +69,7 @@ export default function EntryForm({
           name: initialLocation?.name || "",
           address: initialLocation?.address || "",
           city: initialLocation?.city || "",
-          cuisine: "日料",
+          cuisine: kind === "recipe" ? "中餐" : "日料",
           lat: initialLocation?.lat ?? 31.2304,
           lng: initialLocation?.lng ?? 121.4737,
           rating: 5,
@@ -75,6 +81,29 @@ export default function EntryForm({
           keepPhotoIds: [],
         },
   );
+  const formRef = useRef(form);
+  formRef.current = form;
+  const touched = useRef(
+    new Set<string>(
+      entry
+        ? [
+            "name",
+            "cuisine",
+            "review",
+            "ingredients",
+            "steps",
+            "minutes",
+            "servings",
+            "difficulty",
+          ]
+        : [],
+    ),
+  );
+  const [aiBusy, setAiBusy] = useState(false),
+    [lastFill, setLastFill] = useState<{
+      before: EntryInput;
+      applied: EntryInput;
+    } | null>(null);
   const isRecipe = form.kind === "recipe";
   const [located, setLocated] = useState(!!entry || !!initialLocation),
     [focus, setFocus] = useState<Location | null>(
@@ -86,8 +115,20 @@ export default function EntryForm({
     [processing, setProcessing] = useState(false);
   const filesRef = useRef(files);
   filesRef.current = files;
-  const set = <K extends keyof EntryInput>(key: K, value: EntryInput[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
+  const set = <K extends keyof EntryInput>(key: K, value: EntryInput[K]) => {
+    touched.current.add(key);
+    if (key === "recipe" && value && typeof value === "object")
+      for (const [field, next] of Object.entries(value))
+        if (
+          formRef.current.recipe?.[
+            field as keyof NonNullable<EntryInput["recipe"]>
+          ] !== next
+        )
+          touched.current.add(field);
+    const next = { ...formRef.current, [key]: value };
+    formRef.current = next;
+    setForm(next);
+  };
   function pick(p: Location) {
     setForm((f) => ({
       ...f,
@@ -151,6 +192,10 @@ export default function EntryForm({
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (aiBusy) {
+      setError("请等待菜谱整理完成，或先取消整理。");
+      return;
+    }
     if (!isRecipe && !located) {
       setError("请先点击地图，或输入经纬度，确认店铺位置");
       return;
@@ -230,6 +275,7 @@ export default function EntryForm({
               <input
                 autoComplete="off"
                 name="name"
+                aria-label={isRecipe ? "菜名" : "店铺名称"}
                 required
                 maxLength={100}
                 placeholder={
@@ -239,6 +285,45 @@ export default function EntryForm({
                 onChange={(e) => set("name", e.target.value)}
               />
             </label>
+            {isRecipe && (
+              <RecipeAssistant
+                form={form}
+                disabled={saving || processing}
+                onBusy={setAiBusy}
+                canUndo={!!lastFill}
+                onApply={(suggestion, snapshot, replace) => {
+                  const before = formRef.current;
+                  if (before.name !== snapshot.name)
+                    throw new Error(
+                      "菜名已修改，本次结果未填入。请按当前菜名重新生成。",
+                    );
+                  const result = applyRecipeSuggestion(
+                    before,
+                    snapshot,
+                    suggestion,
+                    replace,
+                    touched.current,
+                  );
+                  if (result.changed) {
+                    formRef.current = result.form;
+                    setForm(result.form);
+                    setLastFill({ before, applied: result.form });
+                  }
+                  return result.changed;
+                }}
+                onUndo={() => {
+                  if (!lastFill) return;
+                  const next = undoRecipeSuggestion(
+                    formRef.current,
+                    lastFill.before,
+                    lastFill.applied,
+                  );
+                  formRef.current = next;
+                  setForm(next);
+                  setLastFill(null);
+                }}
+              />
+            )}
             {!isRecipe && (
               <>
                 <label className="span-2">
@@ -386,6 +471,7 @@ export default function EntryForm({
                   食材与用量 <b>*</b>
                   <textarea
                     name="ingredients"
+                    aria-label="食材与用量"
                     required
                     maxLength={5000}
                     rows={4}
@@ -403,6 +489,7 @@ export default function EntryForm({
                   做法步骤 <b>*</b>
                   <textarea
                     name="steps"
+                    aria-label="做法步骤"
                     required
                     maxLength={10000}
                     rows={6}
@@ -479,39 +566,14 @@ export default function EntryForm({
                 onChange={(e) => set("visitedAt", e.target.value)}
               />
             </label>
-            {!isRecipe && (
-              <label>
-                人均消费
-                <div className="price-field">
-                  <select
-                    aria-label="消费币种"
-                    value={form.currency}
-                    onChange={(e) =>
-                      set("currency", e.target.value as EntryInput["currency"])
-                    }
-                  >
-                    <option value="CNY">CNY ¥</option>
-                    <option value="JPY">JPY ¥</option>
-                    <option value="USD">USD $</option>
-                  </select>
-                  <input
-                    aria-label="人均消费"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="1000000"
-                    placeholder="选填"
-                    value={form.price ?? ""}
-                    onChange={(e) =>
-                      set(
-                        "price",
-                        e.target.value === "" ? null : Number(e.target.value),
-                      )
-                    }
-                  />
-                </div>
-              </label>
-            )}
+            <PriceFields
+              value={form}
+              label={isRecipe ? "每份价格（选填）" : "人均花费（选填）"}
+              onChange={(patch) => {
+                for (const [key, value] of Object.entries(patch))
+                  set(key as keyof EntryInput, value);
+              }}
+            />
             <label className="span-2">
               写给这顿饭的几句话
               <textarea
@@ -611,7 +673,7 @@ export default function EntryForm({
             </button>
             <button
               className="button primary"
-              disabled={saving || processing}
+              disabled={saving || processing || aiBusy}
               type="submit"
             >
               {saving ? (

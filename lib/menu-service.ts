@@ -1,4 +1,5 @@
 import "server-only";
+import { formatPrice } from "./pricing";
 import { randomBytes, randomUUID } from "node:crypto";
 import { query } from "./db";
 import { AppError } from "./validation";
@@ -118,6 +119,7 @@ export async function publicMenu(
                 photo: e.photos[0]?.url || null,
                 minutes: e.recipe?.minutes ?? null,
                 servings: e.recipe?.servings || 1,
+                priceLabel: e.price === null ? null : formatPrice(e),
               },
             ]
           : [];

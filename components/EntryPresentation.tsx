@@ -15,8 +15,10 @@ import {
   CalendarDays,
   Wallet,
 } from "lucide-react";
-import type { Entry } from "@/lib/types";
-import { CUISINES, CURRENCIES } from "@/lib/types";
+import type { Entry, MealStats } from "@/lib/types";
+import { CUISINES } from "@/lib/types";
+import { formatPrice, priceSuffix } from "@/lib/pricing";
+import MealHistory from "./MealHistory";
 import Modal from "./Modal";
 const icons: Record<string, string> = {
   日料: "🍣",
@@ -141,9 +143,8 @@ export function EntryCard({
           <span>
             {entry.price !== null ? (
               <>
-                {CURRENCIES[entry.currency]}
-                {entry.price.toLocaleString()}
-                <small> / 人</small>
+                {formatPrice(entry)}
+                <small>{priceSuffix(entry)}</small>
               </>
             ) : (
               <small>一餐一记</small>
@@ -170,6 +171,7 @@ export function EntryDetail({
   onEdit,
   onDelete,
   canEdit = false,
+  onStats,
 }: {
   entry: Entry;
   demo: boolean;
@@ -177,6 +179,7 @@ export function EntryDetail({
   onEdit: () => void;
   onDelete: () => Promise<void>;
   canEdit?: boolean;
+  onStats?: (stats: MealStats) => void;
 }) {
   const [index, setIndex] = useState(0),
     [confirm, setConfirm] = useState(false),
@@ -239,8 +242,8 @@ export function EntryDetail({
             {entry.price !== null && (
               <span>
                 <Wallet size={15} />
-                {CURRENCIES[entry.currency]}
-                {entry.price} / 人
+                {formatPrice(entry)}
+                {priceSuffix(entry)}
               </span>
             )}
           </div>
@@ -263,6 +266,12 @@ export function EntryDetail({
           <div className="detail-review">
             {entry.review || "这篇日记还没有写下文字。"}
           </div>
+          <MealHistory
+            entry={entry}
+            canEdit={canEdit}
+            demo={demo}
+            onStats={onStats}
+          />
           {entry.kind !== "recipe" && (
             <p className="detail-coordinates">
               WGS-84 · {entry.lat.toFixed(6)}, {entry.lng.toFixed(6)}
@@ -370,6 +379,16 @@ export function RecipeContent({ entry }: { entry: Entry }) {
             </li>
           ))}
       </ol>
+      {entry.source && (
+        <a
+          className="recipe-source-link"
+          href={entry.source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          来源 · {entry.source.platform} / {entry.source.title || "查看原文"} ↗
+        </a>
+      )}
     </section>
   );
 }

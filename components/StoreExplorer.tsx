@@ -2,7 +2,7 @@
 import { useRef, useEffect } from "react";
 import { LocateFixed, MapPin } from "lucide-react";
 import type { Entry } from "@/lib/types";
-import { CURRENCIES } from "@/lib/types";
+import { formatPrice, priceSuffix } from "@/lib/pricing";
 import { FoodCover, Stars } from "./EntryPresentation";
 type Props = {
   items: Entry[];
@@ -52,11 +52,19 @@ export default function StoreExplorer(props: Props) {
                   <span className="store-cuisine">{e.cuisine}</span>
                 </div>
                 <div className="store-rating-line">
-                  <Stars rating={e.rating} />
+                  <Stars rating={e.mealStats?.averageRating ?? e.rating} />
+                  <button
+                    type="button"
+                    className="taste-count"
+                    aria-label={`${e.name}吃过 ${e.mealStats?.count || 1} 次，查看每次评价`}
+                    onClick={() => props.onOpen(e)}
+                  >
+                    吃过 {e.mealStats?.count || 1} 次
+                  </button>
                   {e.price !== null && (
                     <span>
-                      {CURRENCIES[e.currency]}
-                      {e.price} / 人
+                      {formatPrice(e)}
+                      {priceSuffix(e)}
                     </span>
                   )}
                 </div>

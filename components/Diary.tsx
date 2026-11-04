@@ -34,6 +34,7 @@ import {
   QrCode,
   ClipboardList,
   Dices,
+  ChartNoAxesColumnIncreasing,
 } from "lucide-react";
 import type {
   Entry,
@@ -55,6 +56,7 @@ import MenuStudio from "./MenuStudio";
 import MenuSharing from "./MenuSharing";
 import MenuSurface from "./MenuSurface";
 import MealDraw from "./MealDraw";
+import TasteStatistics from "./TasteStatistics";
 import { sheetStops, type SheetSnap } from "@/lib/sheet";
 import { Logo, EntryDetail } from "./EntryPresentation";
 const MapView = dynamic(() => import("./MapView"), {
@@ -102,6 +104,8 @@ export default function Diary() {
   const [mapFocus, setMapFocus] = useState<Location | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
+  const [statisticsOpen, setStatisticsOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [studioOpen, setStudioOpen] = useState<"generate" | "settings" | null>(
     null,
   );
@@ -346,29 +350,40 @@ export default function Diary() {
     setSelected(null);
     notify("这篇记录已删除");
   }
-  function exportDiary() {
-    const url = URL.createObjectURL(
-      new Blob(
-        [
-          JSON.stringify(
-            {
-              app: "tabeLog",
-              exportedAt: new Date().toISOString(),
-              entries: source,
-            },
-            null,
-            2,
-          ),
-        ],
-        { type: "application/json" },
-      ),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tabelog-${kind}-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    notify("文字与坐标已导出；照片请另外保存。");
+  async function exportDiary() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      let content: unknown = {
+        app: "tabeLog",
+        exportedAt: new Date().toISOString(),
+        entries: source,
+        mealRecords: [],
+      };
+      if (!demo) {
+        const r = await fetch(`/api/export?kind=${kind}`, {
+          cache: "no-store",
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "导出失败");
+        content = data;
+      }
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(content, null, 2)], {
+          type: "application/json",
+        }),
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tabelog-${kind}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      notify("日记、价格和每次用餐评价已导出；照片文件请另外保存。");
+    } catch (e) {
+      notify((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
   }
   function changeQuantity(id: string, change: number) {
     if (!source.some((e) => e.id === id && e.kind === "recipe")) return;
@@ -439,9 +454,18 @@ export default function Diary() {
         </button>
       ) : (
         <div className="empty-actions">
-          <button className="button primary" onClick={() => newEntry()}>
-            <Plus size={16} />
-            {recipe ? "写下第一道菜" : "写下第一篇日记"}
+          <button
+            className={`button primary ${recipe ? "recipe-create-button" : ""}`}
+            onClick={() => newEntry()}
+          >
+            {recipe ? (
+              <span className="recipe-create-icon">
+                <Plus size={17} />
+              </span>
+            ) : (
+              <Plus size={16} />
+            )}
+            <span>{recipe ? "写下第一道菜" : "写下第一篇日记"}</span>
           </button>
           <button
             className="text-button"
@@ -502,6 +526,16 @@ export default function Diary() {
       >
         <Heart size={16} fill={favorites ? "currentColor" : "none"} />
       </button>
+      {!recipe && (
+        <button
+          className="favorites-filter map-draw-trigger"
+          aria-label="今天吃什么"
+          title="今天去哪吃"
+          onClick={() => setDrawOpen(true)}
+        >
+          <Dices size={16} />
+        </button>
+      )}
     </>
   );
   const filters = (
@@ -626,6 +660,15 @@ export default function Diary() {
             <div className="topbar-dropdown">
               <button
                 onClick={(e) => {
+                  setStatisticsOpen(true);
+                  e.currentTarget.closest("details")?.removeAttribute("open");
+                }}
+              >
+                <ChartNoAxesColumnIncreasing size={14} />
+                吃过的统计
+              </button>
+              <button
+                onClick={(e) => {
                   setSettingsOpen(true);
                   e.currentTarget.closest("details")?.removeAttribute("open");
                 }}
@@ -664,14 +707,14 @@ export default function Diary() {
               {scope === "mine" && (
                 <button
                   aria-label="导出日记"
-                  disabled={!source.length}
+                  disabled={!source.length || exporting}
                   onClick={(e) => {
                     exportDiary();
                     e.currentTarget.closest("details")?.removeAttribute("open");
                   }}
                 >
                   <Download size={14} />
-                  导出我的记录
+                  {exporting ? "正在导出…" : "导出我的记录"}
                 </button>
               )}
               <button
@@ -796,10 +839,27 @@ export default function Diary() {
           </>
         )}
       </Panel>
-      {drawOpen && recipe && (
+      {statisticsOpen && (
+        <TasteStatistics
+          items={filtered}
+          kind={kind}
+          demo={demo}
+          onClose={() => setStatisticsOpen(false)}
+          onOpen={(entry) => {
+            setStatisticsOpen(false);
+            setSelected(entry);
+          }}
+        />
+      )}
+      {drawOpen && (
         <MealDraw
           items={filtered}
           demo={demo}
+          kind={kind}
+          onLocate={(entry) => {
+            setDrawOpen(false);
+            focusStore(entry);
+          }}
           onClose={() => setDrawOpen(false)}
           onOpen={(entry) => {
             setDrawOpen(false);
@@ -874,6 +934,18 @@ export default function Diary() {
           entry={selected}
           demo={demo}
           canEdit={!demo && selected.ownerId === user?.id}
+          onStats={(stats) => {
+            setSelected((current) =>
+              current ? { ...current, mealStats: stats } : null,
+            );
+            setEntries((current) =>
+              current.map((entry) =>
+                entry.id === selected.id
+                  ? { ...entry, mealStats: stats }
+                  : entry,
+              ),
+            );
+          }}
           onClose={() => setSelected(null)}
           onEdit={() => {
             setEditing(selected);

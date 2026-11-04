@@ -4,6 +4,7 @@ import path from "node:path";
 import { localMode } from "./config";
 import type { Entry } from "./types";
 import { AppError } from "./validation";
+import { mealStats } from "./meal-records";
 type Row = { id: string; data: string; updated_at: string };
 let localDb: import("node:sqlite").DatabaseSync | undefined;
 async function local() {
@@ -51,9 +52,26 @@ export async function query<T>(
 }
 
 const selectEntries =
-  "SELECT e.*, u.name AS author_name FROM entries e JOIN users u ON u.id = json_extract(e.data, '$.ownerId')";
-function decode(row: Row & { author_name: string }): Entry {
-  return { ...JSON.parse(row.data), authorName: row.author_name };
+  "SELECT e.*, u.name AS author_name, COALESCE(m.meal_count,0) AS meal_count, COALESCE(m.rating_total,0) AS rating_total, m.last_eaten_at FROM entries e JOIN users u ON u.id = json_extract(e.data, '$.ownerId') LEFT JOIN (SELECT entry_id, COUNT(*) AS meal_count, SUM(json_extract(data,'$.rating')) AS rating_total, MAX(visited_at) AS last_eaten_at FROM meal_records GROUP BY entry_id) m ON m.entry_id = e.id";
+type EntryRow = Row & {
+  author_name: string;
+  meal_count: number;
+  rating_total: number;
+  last_eaten_at: string | null;
+};
+function decode(row: EntryRow): Entry {
+  const entry = {
+    ...JSON.parse(row.data),
+    authorName: row.author_name,
+  } as Entry;
+  return {
+    ...entry,
+    mealStats: mealStats(entry, {
+      count: row.meal_count,
+      ratingTotal: row.rating_total,
+      lastEatenAt: row.last_eaten_at,
+    }),
+  };
 }
 export async function listEntries(
   userId: string | null,
@@ -64,7 +82,7 @@ export async function listEntries(
       ? "json_extract(e.data, '$.ownerId') = ?"
       : "json_extract(e.data, '$.visibility') = 'public'";
   return (
-    await query<Row & { author_name: string }>(
+    await query<EntryRow>(
       `${selectEntries} WHERE ${where} ORDER BY e.updated_at DESC`,
       scope === "mine" ? [userId] : [],
     )
@@ -78,7 +96,7 @@ export async function getEntry(
   const permission = ownerOnly
     ? "json_extract(e.data,'$.ownerId') = ?"
     : "(json_extract(e.data,'$.ownerId') = ? OR json_extract(e.data,'$.visibility') = 'public')";
-  const rows = await query<Row & { author_name: string }>(
+  const rows = await query<EntryRow>(
     `${selectEntries} WHERE e.id = ? AND ${permission}`,
     [id, userId],
   );
@@ -86,8 +104,8 @@ export async function getEntry(
 }
 export async function canReadPhoto(id: string, userId: string | null) {
   const rows = await query<{ id: string }>(
-    `${selectEntries} WHERE (json_extract(e.data,'$.ownerId') = ? OR json_extract(e.data,'$.visibility') = 'public') AND EXISTS (SELECT 1 FROM json_each(e.data,'$.photos') p WHERE json_extract(p.value,'$.id') = ?) LIMIT 1`,
-    [userId, id],
+    `${selectEntries} WHERE (json_extract(e.data,'$.ownerId') = ? OR json_extract(e.data,'$.visibility') = 'public') AND (EXISTS (SELECT 1 FROM json_each(e.data,'$.photos') p WHERE json_extract(p.value,'$.id') = ?) OR EXISTS (SELECT 1 FROM meal_records r,json_each(r.data,'$.photos') p WHERE r.entry_id=e.id AND json_extract(p.value,'$.id')=?)) LIMIT 1`,
+    [userId, id, id],
   );
   return !!rows.length;
 }

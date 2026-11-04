@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getEntry } from "@/lib/db";
 import { assertConfig } from "@/lib/config";
 import { RecipeContent } from "@/components/EntryPresentation";
+import MealHistory from "@/components/MealHistory";
+import { formatPrice, priceSuffix } from "@/lib/pricing";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "美味分享 · tabeLog" };
 export default async function SharePage({
@@ -56,7 +58,14 @@ export default async function SharePage({
           </p>
         )}
         {entry.recipe && <RecipeContent entry={entry} />}
+        {entry.price !== null && (
+          <p className="shared-price">
+            {formatPrice(entry)}
+            {priceSuffix(entry)}
+          </p>
+        )}
         <div className="detail-review">{entry.review}</div>
+        <MealHistory entry={entry} />
         <footer>
           一餐一记，一味一忆。<Link href="/">回到 tabeLog →</Link>
         </footer>

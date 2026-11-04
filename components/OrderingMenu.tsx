@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { Entry } from "@/lib/types";
 import { CUISINES } from "@/lib/types";
+import { formatPrice } from "@/lib/pricing";
 import { FoodCover, Stars } from "./EntryPresentation";
 import Modal from "./Modal";
 const icons: Record<string, string> = {
@@ -239,7 +240,20 @@ export default function OrderingMenu(props: Props) {
                         {e.visibility === "public" ? "公开" : "私人"}
                       </span>
                     </div>
-                    <Stars rating={e.rating} />
+                    <div className="dish-taste-line">
+                      <Stars rating={e.mealStats?.averageRating ?? e.rating} />
+                      <button
+                        type="button"
+                        className="taste-count"
+                        aria-label={`${e.name}吃过 ${e.mealStats?.count || 1} 次，查看每次评价`}
+                        onClick={() => props.onOpen(e)}
+                      >
+                        吃过 {e.mealStats?.count || 1} 次
+                      </button>
+                      {e.price !== null && (
+                        <span className="dish-price">{formatPrice(e)}</span>
+                      )}
+                    </div>
                     <p className="dish-facts">
                       {e.recipe?.difficulty} <i>·</i>{" "}
                       {e.recipe?.minutes

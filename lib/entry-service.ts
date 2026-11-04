@@ -28,6 +28,7 @@ export async function writeEntry(request: Request, user: User, id?: string) {
   if (files.length + keep.length > 6)
     throw new AppError("每篇日记最多上传 6 张照片");
   const uploads: Photo[] = [];
+  let saved: Entry;
   try {
     for (const f of files) uploads.push(await savePhoto(f as File));
     const { keepPhotoIds: _, ...fields } = input;
@@ -52,9 +53,10 @@ export async function writeEntry(request: Request, user: User, id?: string) {
         removePhoto(p.id),
       ),
     );
-    return entry;
+    saved = entry;
   } catch (error) {
     await Promise.all(uploads.map((p) => removePhoto(p.id)));
     throw error;
   }
+  return (await getEntry(saved.id, user.id, true)) || saved;
 }

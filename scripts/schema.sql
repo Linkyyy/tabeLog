@@ -55,3 +55,11 @@ CREATE TABLE IF NOT EXISTS request_limits (
   expires INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS request_limits_expires ON request_limits(expires);
+CREATE TABLE IF NOT EXISTS meal_records (
+  id TEXT PRIMARY KEY,
+  entry_id TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+  data TEXT NOT NULL CHECK(json_valid(data)),
+  visited_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS meal_records_entry ON meal_records(entry_id,visited_at DESC,created_at DESC);

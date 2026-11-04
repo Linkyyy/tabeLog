@@ -1,9 +1,10 @@
 import { requireAuth, currentUser, checkOrigin } from "@/lib/auth";
-import { getEntry, deleteEntry } from "@/lib/db";
+import { getEntry, deleteEntry, query } from "@/lib/db";
 import { apiError, validId } from "@/lib/http";
 import { writeEntry } from "@/lib/entry-service";
 import { removePhoto } from "@/lib/storage";
 import { AppError } from "@/lib/validation";
+import type { Photo } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ id: string }> };
@@ -41,8 +42,16 @@ export async function DELETE(request: Request, ctx: Context) {
     validId(id);
     const old = await getEntry(id, user.id, true);
     if (!old) throw new AppError("记录不存在或不属于你", 404);
+    const repeatPhotos = await query<{ id: string }>(
+      "SELECT json_extract(p.value,'$.id') AS id FROM meal_records r,json_each(r.data,'$.photos') p WHERE r.entry_id=?",
+      [id],
+    );
     await deleteEntry(id, user.id, old.updatedAt);
-    await Promise.all(old.photos.map((p) => removePhoto(p.id)));
+    await Promise.all(
+      [...old.photos, ...repeatPhotos].map((p: Pick<Photo, "id">) =>
+        removePhoto(p.id),
+      ),
+    );
     return Response.json({ ok: true });
   } catch (e) {
     return apiError(e);

@@ -229,7 +229,7 @@ export default function PublicMenu({
                     人份 / 份
                   </span>
                   <div className="public-dish-bottom">
-                    <small>{d.cuisine}</small>
+                    <small>{d.priceLabel || d.cuisine}</small>
                     {quantity(d.id, d.name)}
                   </div>
                 </div>

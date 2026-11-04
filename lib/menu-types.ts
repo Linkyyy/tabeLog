@@ -6,6 +6,7 @@ export type MenuDish = {
   photo: string | null;
   minutes: number | null;
   servings: number;
+  priceLabel?: string | null;
 };
 export type SharedMenu = { title: string; author: string; dishes: MenuDish[] };
 export type MenuShare = {

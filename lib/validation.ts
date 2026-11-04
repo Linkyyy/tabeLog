@@ -1,4 +1,5 @@
-import type { EntryInput } from "./types";
+import type { EntryInput, MealRecordInput } from "./types";
+import { PRICE_UNITS } from "./pricing";
 export class AppError extends Error {
   constructor(
     message: string,
@@ -17,6 +18,7 @@ export function parseEntry(value: unknown): EntryInput {
   if (!["private", "public"].includes(String(visibility)))
     throw new AppError("请选择私人或公开");
   let recipe: EntryInput["recipe"];
+  let source: EntryInput["source"];
   if (kind === "recipe") {
     const r = v.recipe as Record<string, unknown> | undefined;
     if (
@@ -55,13 +57,45 @@ export function parseEntry(value: unknown): EntryInput {
       servings: r.servings,
       difficulty: r.difficulty as "简单" | "进阶" | "挑战",
     };
+    if (v.source !== undefined) {
+      const s = v.source as Record<string, unknown> | null;
+      if (
+        !s ||
+        typeof s.url !== "string" ||
+        s.url.length > 2048 ||
+        typeof s.platform !== "string" ||
+        !s.platform.trim() ||
+        s.platform.length > 40 ||
+        typeof s.title !== "string" ||
+        s.title.length > 200
+      )
+        throw new AppError("菜谱来源格式不正确");
+      let url: URL;
+      try {
+        url = new URL(s.url);
+      } catch {
+        throw new AppError("菜谱来源链接无效");
+      }
+      if (
+        url.protocol !== "https:" ||
+        url.username ||
+        url.password ||
+        (url.port && url.port !== "443")
+      )
+        throw new AppError("菜谱来源应为 HTTPS 链接");
+      source = {
+        url: url.href,
+        platform: s.platform.trim(),
+        title: s.title.trim(),
+      };
+    }
     Object.assign(v, {
       lat: 0,
       lng: 0,
       address: "",
       city: "",
-      price: null,
-      currency: "CNY",
+      price: v.price ?? null,
+      currency: v.currency ?? "CNY",
     });
   }
   const str = (key: string, max: number, required = false) => {
@@ -110,8 +144,10 @@ export function parseEntry(value: unknown): EntryInput {
       price > 1000000)
   )
     throw new AppError("人均消费格式不正确");
-  if (!["CNY", "JPY", "USD"].includes(String(currency)))
-    throw new AppError("不支持的币种");
+  if (!PRICE_UNITS.some((unit) => unit.id === currency))
+    throw new AppError("请选择支持的价格单位");
+  const customUnit =
+    currency === "CUSTOM" ? str("customUnit", 12, true) : undefined;
   if (typeof favorite !== "boolean") throw new AppError("收藏状态格式不正确");
   if (
     keepPhotoIds !== undefined &&
@@ -127,6 +163,7 @@ export function parseEntry(value: unknown): EntryInput {
     kind: kind as EntryInput["kind"],
     visibility: visibility as EntryInput["visibility"],
     recipe,
+    ...(source ? { source } : {}),
     name,
     address,
     city,
@@ -138,7 +175,33 @@ export function parseEntry(value: unknown): EntryInput {
     rating,
     price: price as number | null,
     currency: currency as EntryInput["currency"],
+    ...(customUnit ? { customUnit } : {}),
     favorite,
     keepPhotoIds: keepPhotoIds as string[] | undefined,
+  };
+}
+export function parseMealRecord(value: unknown): MealRecordInput {
+  if (!value || typeof value !== "object") throw new AppError("请填写用餐记录");
+  const v = value as Record<string, unknown>;
+  const parsed = parseEntry({
+    ...v,
+    kind: "visit",
+    visibility: "private",
+    name: "用餐记录",
+    address: "",
+    city: "",
+    cuisine: "其他",
+    lat: 0,
+    lng: 0,
+    favorite: false,
+    keepPhotoIds: undefined,
+  });
+  return {
+    visitedAt: parsed.visitedAt,
+    rating: parsed.rating,
+    review: parsed.review,
+    price: parsed.price,
+    currency: parsed.currency,
+    ...(parsed.customUnit ? { customUnit: parsed.customUnit } : {}),
   };
 }
