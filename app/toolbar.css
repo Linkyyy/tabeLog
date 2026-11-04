@@ -41,7 +41,7 @@
   display: none;
 }
 .diary-tools {
-  position: relative;
+  position: static;
   flex-shrink: 0;
 }
 .diary-tools > summary {
@@ -81,9 +81,12 @@
 }
 .diary-tools-popover {
   position: absolute;
-  right: 0;
+  right: 12px;
   top: calc(100% + 7px);
-  width: 184px;
+  width: min(310px, calc(100% - 24px));
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
   padding: 6px;
   background: var(--white);
   border: 1px solid var(--line);
@@ -96,17 +99,22 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 11px 10px;
+  padding: 10px 8px;
   border-radius: 8px;
   color: var(--accent-ink, var(--rust));
-  font-size: 12px;
+  font-size: 11px;
   text-align: left;
   white-space: nowrap;
 }
 .diary-tools-popover > button:hover {
   background: var(--accent-soft, var(--soft));
 }
+.diary-tools-popover > button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .tools-demo-note {
+  grid-column: 1 / -1;
   border-top: 1px solid var(--line);
   padding: 10px 8px 4px;
   margin-top: 4px;
@@ -115,6 +123,14 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
+}
+html[data-theme] .map-application .modal-dismiss + .auth-form {
+  padding: 38px 30px 30px;
+}
+@media (max-width: 650px) {
+  html[data-theme] .map-application .modal-dismiss + .auth-form {
+    padding: 34px 24px 28px;
+  }
 }
 .tools-demo-note > button {
   display: flex;

@@ -574,14 +574,20 @@ export default function Diary() {
         recipe={recipe}
         demo={demo}
         onOpen={() => {
-          if (snap === "collapsed") setSnap("half");
+          if (!recipe && viewport < 700) setSnap("expanded");
+          else if (snap === "collapsed") setSnap("half");
         }}
         onDraw={() => setDrawOpen(true)}
         onAI={() => openMenuTool("generate")}
         onShare={() => openMenuTool("share")}
         onOrders={() => openMenuTool("orders")}
         onStatistics={() => setStatisticsOpen(true)}
-        onEndDemo={toggleDemo}
+        onToggleDemo={toggleDemo}
+        onSettings={() => setSettingsOpen(true)}
+        onReset={filtersReset}
+        onExport={scope === "mine" ? exportDiary : undefined}
+        exportDisabled={!source.length}
+        exporting={exporting}
       />
     </>
   );
@@ -650,90 +656,6 @@ export default function Diary() {
           >
             {user ? <LogOut size={17} /> : <UserRound size={18} />}
           </button>
-          <details
-            className="topbar-more"
-            onBlur={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node | null))
-                e.currentTarget.open = false;
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") e.currentTarget.open = false;
-            }}
-          >
-            <summary className="topbar-icon" aria-label="更多操作">
-              <MoreHorizontal size={20} />
-            </summary>
-            <div className="topbar-dropdown">
-              <button
-                onClick={(e) => {
-                  setStatisticsOpen(true);
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                }}
-              >
-                <ChartNoAxesColumnIncreasing size={14} />
-                吃过的统计
-              </button>
-              <button
-                onClick={(e) => {
-                  setSettingsOpen(true);
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                }}
-              >
-                <Settings size={14} />
-                设置
-              </button>
-              <button
-                onClick={(e) => {
-                  openMenuTool("generate");
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                }}
-              >
-                <Sparkles size={14} />
-                AI 生成与导入菜谱
-              </button>
-              <button
-                onClick={(e) => {
-                  openMenuTool("share");
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                }}
-              >
-                <QrCode size={14} />
-                扫码点餐管理
-              </button>
-              <button
-                aria-label={demo ? "结束示例漫游" : "浏览示例日记"}
-                onClick={(e) => {
-                  toggleDemo();
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                }}
-              >
-                <Sparkles size={14} />
-                {demo ? "回到真实记录" : "查看示例"}
-              </button>
-              {scope === "mine" && (
-                <button
-                  aria-label="导出日记"
-                  disabled={!source.length || exporting}
-                  onClick={(e) => {
-                    exportDiary();
-                    e.currentTarget.closest("details")?.removeAttribute("open");
-                  }}
-                >
-                  <Download size={14} />
-                  {exporting ? "正在导出…" : "导出我的记录"}
-                </button>
-              )}
-              <button
-                onClick={(e) => {
-                  filtersReset();
-                  e.currentTarget.closest("details")?.removeAttribute("open");
-                }}
-              >
-                <Search size={14} />
-                清除筛选
-              </button>
-            </div>
-          </details>
         </div>
       </header>
       {active && snap !== "expanded" && (

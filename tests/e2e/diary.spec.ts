@@ -102,10 +102,9 @@ test("two routes, eight-character registration/login, restaurant map and private
   await expect(
     page.getByRole("heading", { name: "还没找到这份美味" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "清除筛选" }).click();
+  await openDiaryTool(page, "清除筛选");
   const download = page.waitForEvent("download");
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "导出日记", exact: true }).click();
+  await openDiaryTool(page, "导出日记");
   expect((await download).suggestedFilename()).toMatch(/tabelog-recipe/);
   await page
     .getByRole("button", { name: "番茄牛腩 · 再做一次", exact: true })
@@ -301,8 +300,7 @@ test("responsive module previews and login prompt without polluting real records
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("link", { name: "我的菜单", exact: true }).click();
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  await openDiaryTool(page, "浏览示例日记");
   await expect(page.getByRole("slider", { name: "清单抽屉高度" })).toHaveCount(
     0,
   );
@@ -335,8 +333,7 @@ test("fullscreen food map retains its draggable sheet and uses route navigation 
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/map");
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  await openDiaryTool(page, "浏览示例日记");
   const map = page.getByRole("main", { name: "店铺地图" }),
     sheet = page.getByRole("region", { name: "店铺抽屉" }),
     slider = page.getByRole("slider", { name: "清单抽屉高度" });
@@ -449,10 +446,7 @@ test("touch swipes resize the food map sheet; the separate menu retains selectio
   );
   try {
     await page.goto("/map");
-    await page.getByLabel("更多操作", { exact: true }).click();
-    await page
-      .getByRole("button", { name: "浏览示例日记", exact: true })
-      .click();
+    await openDiaryTool(page, "浏览示例日记");
     const sheet = page.getByRole("region", { name: "店铺抽屉" });
     const slider = page.getByRole("slider", { name: "清单抽屉高度" });
     await expect(sheet).toHaveAttribute("data-snap", "half");
@@ -504,7 +498,7 @@ test("touch swipes resize the food map sheet; the separate menu retains selectio
     await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
       "共 3 份",
     );
-    await page.getByRole("button", { name: "清除筛选" }).click();
+    await openDiaryTool(page, "清除筛选");
     await page.getByRole("button", { name: "查看菜单", exact: true }).click();
     const dialog = page.getByRole("dialog");
     await dialog
@@ -550,8 +544,7 @@ test("all five themes switch in settings without losing menu state; saved appear
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/map");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  await openDiaryTool(page, "浏览示例日记");
   await page.getByRole("slider", { name: "清单抽屉高度" }).press("Home");
   const map = page.locator(".workspace-map .leaflet-container");
   await expect(page.getByRole("region", { name: "店铺抽屉" })).toHaveCSS(
@@ -564,8 +557,13 @@ test("all five themes switch in settings without losing menu state; saved appear
   await map.locator(".leaflet-control-zoom-in").click();
   await expect(street).not.toHaveAttribute("d", beforeZoom!);
   await expect(map).not.toHaveClass(/leaflet-zoom-anim/);
+  // The shared toolbar opens the collapsed drawer before showing its actions.
+  await page.getByRole("button", { name: "菜单工具", exact: true }).click();
+  await expect(page.getByRole("region", { name: "店铺抽屉" })).toHaveCSS(
+    "height",
+    "405px",
+  );
   const streetBefore = await street.getAttribute("d");
-  await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "设置", exact: true }).click();
   await page.getByRole("radio", { name: "薄荷白", exact: true }).check();
   await page.getByRole("radio", { name: "珊瑚晴空", exact: true }).check();
@@ -576,8 +574,7 @@ test("all five themes switch in settings without losing menu state; saved appear
     .getByRole("button", { name: "加入菜单 番茄慢炖牛腩", exact: true })
     .click();
   const sheet = page.getByRole("main", { name: "我的菜单", exact: true });
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "设置", exact: true }).click();
+  await openDiaryTool(page, "设置");
   await expect(page.getByRole("radio")).toHaveCount(5);
   await expect(
     page.getByRole("radio", { name: "珊瑚晴空", exact: true }),
@@ -646,8 +643,7 @@ test("all five themes switch in settings without losing menu state; saved appear
   try {
     await tab.goto("/");
     await expect(tab.locator("html")).toHaveAttribute("data-theme", "midnight");
-    await page.getByLabel("更多操作", { exact: true }).click();
-    await page.getByRole("button", { name: "设置", exact: true }).click();
+    await openDiaryTool(page, "设置");
     await page.getByRole("radio", { name: "雾紫银白", exact: true }).check();
     await expect(tab.locator("html")).toHaveAttribute("data-theme", "lavender");
     await page.getByRole("button", { name: "完成", exact: true }).click();
@@ -712,8 +708,7 @@ test("theme loads before hydration, rejects invalid preferences, and still switc
       (route) => route.abort(),
     );
     await page.goto("/");
-    await page.getByLabel("更多操作", { exact: true }).click();
-    await page.getByRole("button", { name: "设置", exact: true }).click();
+    await openDiaryTool(page, "设置");
     await page.getByRole("radio", { name: "午夜蓝", exact: true }).check();
     await expect(page.locator("html")).toHaveAttribute(
       "data-theme",
@@ -749,8 +744,7 @@ test("menu omits all map rendering; food map keeps demo cartography, themes and 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page).toHaveURL(/\/menu$/);
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  await openDiaryTool(page, "浏览示例日记");
   const menu = page.getByRole("main", { name: "我的菜单", exact: true });
   await expect(menu).toBeVisible();
   await expect(
@@ -775,8 +769,7 @@ test("menu omits all map rendering; food map keeps demo cartography, themes and 
     "background-image",
     "none",
   );
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "设置", exact: true }).click();
+  await openDiaryTool(page, "设置");
   const water = map.locator("path.basemap-water").first();
   for (const [name, color] of [
     ["午夜蓝", "rgb(30, 72, 122)"],
@@ -798,8 +791,7 @@ test("menu omits all map rendering; food map keeps demo cartography, themes and 
   const photo = page.getByAltText("巷口的面包房的美食照片", { exact: true });
   await expect(photo).toHaveAttribute("src", "/demo/coffee.webp");
   await expect(photo).toHaveJSProperty("naturalWidth", 720);
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "结束示例漫游", exact: true }).click();
+  await openDiaryTool(page, "回到真实记录");
   await expect(page.locator(".has-demo-basemap,.basemap-road")).toHaveCount(0);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
@@ -823,8 +815,7 @@ test("default menu route, navigation, filtered meal draws and basket state work 
     page.getByRole("link", { name: "我的菜单", exact: true }),
   ).toHaveAttribute("aria-current", "page");
   await expect(page.getByLabel("模块切换", { exact: true })).toHaveCount(0);
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  await openDiaryTool(page, "浏览示例日记");
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     await expect(page.locator(".workspace-map,.map-bottom-sheet")).toHaveCount(

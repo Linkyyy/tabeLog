@@ -259,8 +259,7 @@ test("inline AI drafts, article import, fun prices and repeated meal reviews per
         exact: true,
       }),
     ).toBeVisible();
-    await page.getByLabel("更多操作", { exact: true }).click();
-    await page.getByRole("button", { name: "吃过的统计", exact: true }).click();
+    await openDiaryTool(page, "吃过的统计");
     await expect(page.getByRole("dialog")).toContainText("累计吃过 / 次");
     await expect(page.getByRole("dialog")).toContainText("2 次");
     await page.getByRole("button", { name: "关闭", exact: true }).click();
@@ -407,8 +406,7 @@ test("random and favorite draws work in menu and map, and primary action letteri
     r.abort(),
   );
   await page.goto("/menu");
-  await page.getByLabel("更多操作", { exact: true }).click();
-  await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
+  await openDiaryTool(page, "浏览示例日记");
   await openDiaryTool(page, "今天吃什么");
   await page.getByRole("button", { name: "收藏里吃", exact: true }).click();
   await expect(

@@ -8,6 +8,9 @@ import {
   QrCode,
   ClipboardList,
   ChartNoAxesColumnIncreasing,
+  Settings,
+  Download,
+  FilterX,
   X,
 } from "lucide-react";
 export default function DiaryTools({
@@ -19,7 +22,12 @@ export default function DiaryTools({
   onShare,
   onOrders,
   onStatistics,
-  onEndDemo,
+  onToggleDemo,
+  onSettings,
+  onReset,
+  onExport,
+  exportDisabled = false,
+  exporting = false,
 }: {
   recipe: boolean;
   demo: boolean;
@@ -29,7 +37,12 @@ export default function DiaryTools({
   onShare: () => void;
   onOrders: () => void;
   onStatistics: () => void;
-  onEndDemo: () => void;
+  onToggleDemo: () => void;
+  onSettings: () => void;
+  onReset: () => void;
+  onExport?: () => void;
+  exportDisabled?: boolean;
+  exporting?: boolean;
 }) {
   const root = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -91,29 +104,56 @@ export default function DiaryTools({
           <Dices size={15} />
           {recipe ? "今天吃什么" : "今天去哪吃"}
         </button>
-        {recipe && (
-          <>
-            <button
-              type="button"
-              aria-label="AI 生成 / 导入"
-              onClick={() => action(onAI)}
-            >
-              <Sparkles size={15} />
-              AI 菜谱 / 导入
-            </button>
-            <button type="button" onClick={() => action(onShare)}>
-              <QrCode size={15} />
-              点餐二维码
-            </button>
-            <button type="button" onClick={() => action(onOrders)}>
-              <ClipboardList size={15} />
-              收到的点餐
-            </button>
-          </>
-        )}
+        <>
+          <button
+            type="button"
+            aria-label="AI 生成 / 导入"
+            onClick={() => action(onAI)}
+          >
+            <Sparkles size={15} />
+            AI 菜谱 / 导入
+          </button>
+          <button type="button" onClick={() => action(onShare)}>
+            <QrCode size={15} />
+            点餐二维码
+          </button>
+          <button type="button" onClick={() => action(onOrders)}>
+            <ClipboardList size={15} />
+            收到的点餐
+          </button>
+        </>
         <button type="button" onClick={() => action(onStatistics)}>
           <ChartNoAxesColumnIncreasing size={15} />
           吃过的统计
+        </button>
+        <button type="button" onClick={() => action(onSettings)}>
+          <Settings size={15} />
+          设置
+        </button>
+        {!demo && (
+          <button
+            type="button"
+            aria-label="浏览示例日记"
+            onClick={() => action(onToggleDemo)}
+          >
+            <Sparkles size={15} />
+            查看示例
+          </button>
+        )}
+        {onExport && (
+          <button
+            type="button"
+            aria-label="导出日记"
+            disabled={exportDisabled || exporting}
+            onClick={() => action(onExport)}
+          >
+            <Download size={15} />
+            {exporting ? "正在导出…" : "导出我的记录"}
+          </button>
+        )}
+        <button type="button" onClick={() => action(onReset)}>
+          <FilterX size={15} />
+          清除筛选
         </button>
         {demo && (
           <div className="tools-demo-note">
@@ -121,7 +161,7 @@ export default function DiaryTools({
             <button
               type="button"
               aria-label="回到真实记录"
-              onClick={() => action(onEndDemo)}
+              onClick={() => action(onToggleDemo)}
             >
               <X size={13} />
               结束示例
