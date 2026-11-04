@@ -910,7 +910,11 @@ export default function Diary() {
         />
       )}
       {authOpen && (
-        <Modal title="我的美味账户" onClose={() => setAuthOpen(false)}>
+        <Modal
+          title="我的美味账户"
+          hideHeader
+          onClose={() => setAuthOpen(false)}
+        >
           <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />
         </Modal>
       )}

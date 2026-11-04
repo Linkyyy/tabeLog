@@ -50,6 +50,17 @@ html[data-theme] .map-application .topbar-dropdown button {
   z-index: 1000;
   background: var(--white);
 }
+.modal-dismiss {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 1001;
+}
+.modal-dismiss > .icon-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
 html .map-application.menu-application .empty-actions .recipe-create-button {
   background: var(--white);
   color: var(--accent-ink, var(--rust));
