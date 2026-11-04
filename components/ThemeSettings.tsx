@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, MapPin, Utensils } from "lucide-react";
+import { Check, MapPin, Utensils, Sparkles, ChevronRight } from "lucide-react";
 import { DEFAULT_THEME, THEMES } from "@/lib/themes";
 import { useTheme } from "./ThemeProvider";
 import Modal from "./Modal";
@@ -10,10 +10,12 @@ export default function ThemeSettings({
   onClose,
   provider,
   onProviderChange,
+  onAISettings,
 }: {
   onClose: () => void;
   provider: MapProvider;
   onProviderChange: (provider: MapProvider) => void;
+  onAISettings: () => void;
 }) {
   const { theme, setTheme } = useTheme();
   return (
@@ -94,6 +96,18 @@ export default function ThemeSettings({
             <option value="amap">高德地图</option>
           </select>
         </label>
+        <button
+          type="button"
+          className="ai-settings-link"
+          onClick={onAISettings}
+        >
+          <Sparkles size={18} />
+          <span>
+            <strong>AI 菜谱接口</strong>
+            <small>DeepSeek、OpenAI、千问等</small>
+          </span>
+          <ChevronRight size={17} />
+        </button>
         <button
           className="button primary theme-settings-done"
           type="button"

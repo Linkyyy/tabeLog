@@ -15,7 +15,7 @@ import type { User } from "./types";
 const COOKIE = "tabelog_account";
 const digest = (s: string) => createHash("sha256").update(s).digest("hex");
 let secretPromise: Promise<string> | undefined;
-async function secret() {
+export async function serverSecret() {
   if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 32)
     return process.env.SESSION_SECRET;
   if (!localMode) throw new AppError("SESSION_SECRET 至少需要 32 个字符", 503);
@@ -35,7 +35,7 @@ async function secret() {
   })());
 }
 async function sign(token: string) {
-  return createHmac("sha256", await secret())
+  return createHmac("sha256", await serverSecret())
     .update(token)
     .digest("hex");
 }
@@ -114,7 +114,7 @@ export async function throttleLogin(request: Request) {
       .get(process.env.VERCEL ? "x-vercel-forwarded-for" : "x-forwarded-for")
       ?.split(",")[0]
       ?.trim() || "local";
-  const id = createHmac("sha256", await secret())
+  const id = createHmac("sha256", await serverSecret())
       .update(ip)
       .digest("hex"),
     now = Date.now();

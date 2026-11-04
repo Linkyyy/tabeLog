@@ -29,6 +29,8 @@ import {
   MoreHorizontal,
   UserRound,
   Settings,
+  QrCode,
+  ClipboardList,
 } from "lucide-react";
 import type {
   Entry,
@@ -46,6 +48,8 @@ import OrderingMenu, { type Quantities } from "./OrderingMenu";
 import StoreExplorer from "./StoreExplorer";
 import BottomSheet from "./BottomSheet";
 import ThemeSettings from "./ThemeSettings";
+import MenuStudio from "./MenuStudio";
+import MenuSharing from "./MenuSharing";
 import { useTheme } from "./ThemeProvider";
 import { sheetStops, type SheetSnap } from "@/lib/sheet";
 import { Logo, EntryDetail } from "./EntryPresentation";
@@ -92,6 +96,33 @@ export default function Diary() {
   const [activeId, setActiveId] = useState<string>();
   const [mapFocus, setMapFocus] = useState<Location | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [studioOpen, setStudioOpen] = useState<"generate" | "settings" | null>(
+    null,
+  );
+  const [sharingOpen, setSharingOpen] = useState<"share" | "orders" | null>(
+    null,
+  );
+  function openMenuTool(tool: "generate" | "settings" | "share" | "orders") {
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
+    if (tool === "generate" || tool === "settings") setStudioOpen(tool);
+    else setSharingOpen(tool);
+  }
+  function recipesImported(imported: Entry[]) {
+    setKind("recipe");
+    setScope("mine");
+    setDemo(false);
+    setSnap("half");
+    setEntries((current) => [
+      ...imported,
+      ...current.filter((e) => e.ownerId === user?.id),
+    ]);
+    filtersReset();
+    setStudioOpen(null);
+    notify(`已将 ${imported.length} 道菜保存到我的菜单，仅自己可见。`);
+  }
   useEffect(() => {
     const update = () => setViewport(window.innerHeight);
     update();
@@ -582,6 +613,24 @@ export default function Diary() {
                 设置
               </button>
               <button
+                onClick={(e) => {
+                  openMenuTool("generate");
+                  e.currentTarget.closest("details")?.removeAttribute("open");
+                }}
+              >
+                <Sparkles size={14} />
+                AI 生成与导入菜谱
+              </button>
+              <button
+                onClick={(e) => {
+                  openMenuTool("share");
+                  e.currentTarget.closest("details")?.removeAttribute("open");
+                }}
+              >
+                <QrCode size={14} />
+                扫码点餐管理
+              </button>
+              <button
                 aria-label={demo ? "结束示例漫游" : "浏览示例日记"}
                 onClick={(e) => {
                   toggleDemo();
@@ -643,6 +692,22 @@ export default function Diary() {
           <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />
         ) : (
           <>
+            {recipe && (
+              <div className="menu-tools" aria-label="我的菜单工具">
+                <button onClick={() => openMenuTool("generate")}>
+                  <Sparkles size={15} />
+                  <span>AI 生成 / 导入</span>
+                </button>
+                <button onClick={() => openMenuTool("share")}>
+                  <QrCode size={15} />
+                  <span>点餐二维码</span>
+                </button>
+                <button onClick={() => openMenuTool("orders")}>
+                  <ClipboardList size={15} />
+                  <span>收到的点餐</span>
+                </button>
+              </div>
+            )}
             {filters}
             {error && (
               <div className="error-banner" role="alert">
@@ -709,6 +774,26 @@ export default function Diary() {
           provider={provider}
           onProviderChange={changeProvider}
           onClose={() => setSettingsOpen(false)}
+          onAISettings={() => {
+            setSettingsOpen(false);
+            openMenuTool("settings");
+          }}
+        />
+      )}
+      {studioOpen && user && (
+        <MenuStudio
+          key={user.id}
+          initialTab={studioOpen}
+          onClose={() => setStudioOpen(null)}
+          onImported={recipesImported}
+        />
+      )}
+      {sharingOpen && user && (
+        <MenuSharing
+          key={user.id}
+          user={user}
+          initialTab={sharingOpen}
+          onClose={() => setSharingOpen(null)}
         />
       )}
       {authOpen && (

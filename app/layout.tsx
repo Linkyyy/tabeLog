@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./themes.css";
+import "./menu.css";
 import ThemeProvider from "@/components/ThemeProvider";
 import { DEFAULT_THEME, themeBootstrap } from "@/lib/themes";
 export const metadata: Metadata = {

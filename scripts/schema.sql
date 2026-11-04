@@ -25,3 +25,33 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS sessions_expires ON sessions(expires);
 CREATE INDEX IF NOT EXISTS entries_owner ON entries(json_extract(data, '$.ownerId'));
 CREATE INDEX IF NOT EXISTS entries_visibility ON entries(json_extract(data, '$.visibility'));
+CREATE TABLE IF NOT EXISTS ai_settings (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data TEXT NOT NULL CHECK(json_valid(data)),
+  encrypted_key TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS menu_shares (
+  owner_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  entry_ids TEXT NOT NULL CHECK(json_valid(entry_ids)),
+  enabled INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS menu_orders (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  share_token TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  data TEXT NOT NULL CHECK(json_valid(data)),
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  UNIQUE(share_token, request_id)
+);
+CREATE INDEX IF NOT EXISTS menu_orders_owner ON menu_orders(owner_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS request_limits (
+  id TEXT PRIMARY KEY,
+  attempts INTEGER NOT NULL,
+  expires INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS request_limits_expires ON request_limits(expires);
