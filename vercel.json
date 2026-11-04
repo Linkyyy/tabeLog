@@ -3,5 +3,5 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
-  "functions": { "app/api/**/*.ts": { "maxDuration": 30 } }
+  "functions": { "app/api/**/*.ts": { "maxDuration": 90 } }
 }

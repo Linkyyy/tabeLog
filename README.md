@@ -203,7 +203,7 @@ npx vercel link
 npx vercel deploy --prod
 ```
 
-CI 使用安全配置的 Vercel Token；不要把 Token 写进代码。`vercel.json` 已配置安装、构建和 API 执行时限。Vercel 不要设置 `STORAGE_MODE=local`。预览部署建议使用独立 D1/R2 数据集。
+CI 使用安全配置的 Vercel Token；不要把 Token 写进代码。`vercel.json` 已配置安装、构建和 90 秒 API 执行时限，与 AI 生成接口保持一致（AI 上游请求最多等待 75 秒）。Vercel 不要设置 `STORAGE_MODE=local`。预览部署建议使用独立 D1/R2 数据集。
 
 发布后注册自己的账户，分别新增一条探店、一篇菜谱，上传照片；刷新后检查持久化，再用无痕窗口测试公开分享和私人权限。若仅供有限用户使用，创建完账户后可关闭注册并重新部署。
 
