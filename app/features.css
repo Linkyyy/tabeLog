@@ -61,6 +61,136 @@ html[data-theme] .map-application .topbar-dropdown button {
   top: 10px;
   right: 10px;
 }
+.sheet-toolbar {
+  position: relative;
+  z-index: 2;
+}
+.compact-search {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.compact-search-trigger {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--accent-ink, var(--rust));
+  background: var(--white);
+}
+.compact-search-trigger[aria-expanded="true"],
+.compact-search-trigger.has-query {
+  background: var(--accent-soft, var(--soft));
+  border-color: color-mix(in srgb, var(--rust) 30%, var(--line));
+}
+.compact-search-trigger:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 3px;
+}
+.search-active-dot {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rust);
+  box-shadow: 0 0 0 2px var(--accent-soft, var(--white));
+}
+html[data-theme] .map-application .sheet-toolbar .compact-search-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+  width: min(300px, calc(100% - 24px));
+  height: 42px;
+  display: flex;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: 0 8px 28px var(--shadow, #26334018);
+  color: var(--muted);
+  gap: 8px;
+  z-index: 3;
+}
+.compact-search-popover > svg,
+.compact-search-popover > button {
+  flex-shrink: 0;
+}
+html[data-theme] .compact-search-popover input:focus {
+  outline: none;
+  border-color: transparent !important;
+  box-shadow: none;
+}
+html[data-theme]
+  .map-application
+  .sheet-toolbar
+  .compact-search-popover:focus-within {
+  border-color: color-mix(in srgb, var(--rust) 45%, var(--line));
+}
+.compact-search-popover > button {
+  width: 24px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--accent-ink, var(--rust));
+}
+.visit-mode .sheet-summary {
+  margin-right: auto;
+}
+.menu-surface .menu-toolbar .menu-tools {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  gap: 8px;
+}
+.menu-surface .menu-toolbar .menu-tools button {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+@media (max-width: 650px) {
+  .menu-surface .menu-toolbar {
+    min-height: 62px;
+    padding: 7px 12px;
+    gap: 6px;
+  }
+  .menu-toolbar > .sheet-summary {
+    display: none;
+  }
+  .menu-surface .menu-toolbar .menu-tools {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .menu-surface .menu-toolbar .menu-tools button {
+    min-width: 0;
+    min-height: 47px;
+    padding: 5px 1px;
+    font-size: 9px;
+    gap: 4px;
+  }
+  .menu-surface .menu-toolbar .menu-tools svg {
+    width: 15px;
+    height: 15px;
+  }
+  .compact-search-trigger {
+    width: 30px;
+    height: 30px;
+  }
+  .compact-search-trigger > svg {
+    width: 15px;
+    height: 15px;
+  }
+  .map-application .menu-toolbar .favorites-filter {
+    width: 30px;
+    height: 30px;
+  }
+}
 html .map-application.menu-application .empty-actions .recipe-create-button {
   background: var(--white);
   color: var(--accent-ink, var(--rust));

@@ -96,6 +96,7 @@ test("two routes, eight-character registration/login, restaurant map and private
   await page.getByRole("button", { name: "公开分享 所有人可见" }).click();
   await page.getByRole("button", { name: "保存这份美味" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
   await page.getByLabel("搜索日记").fill("找不到的菜");
   await expect(
     page.getByRole("heading", { name: "还没找到这份美味" }),
@@ -494,6 +495,7 @@ test("touch swipes resize the food map sheet; the separate menu retains selectio
     await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(
       "已选 2 道菜，共 3 份",
     );
+    await page.getByRole("button", { name: "搜索", exact: true }).click();
     await page.getByLabel("搜索日记").fill("不存在的甜点");
     await expect(
       page.getByRole("heading", { name: "还没找到这份美味" }),
@@ -868,7 +870,17 @@ test("default menu route, navigation, filtered meal draws and basket state work 
     .click();
   await expect(page.getByRole("dialog")).toContainText("食材清单");
   await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await expect(page.getByLabel("搜索日记")).toHaveCount(0);
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await expect(page.getByLabel("搜索日记")).toBeFocused();
   await page.getByLabel("搜索日记").fill("不存在的食物");
+  await page.getByLabel("搜索日记").press("Escape");
+  await expect(page.getByLabel("搜索日记")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "搜索", exact: true }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await expect(page.getByLabel("搜索日记")).toHaveValue("不存在的食物");
   await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("当前没有可抽取的菜谱");
   await expect(
@@ -878,6 +890,24 @@ test("default menu route, navigation, filtered meal draws and basket state work 
   await page.getByRole("link", { name: "美食地图", exact: true }).click();
   await expect(page).toHaveURL(/\/map$/);
   await expect(page.getByRole("main", { name: "店铺地图" })).toBeVisible();
+  await expect(page.getByLabel("搜索日记")).toHaveCount(0);
+  await page.getByRole("slider", { name: "清单抽屉高度" }).press("Home");
+  await expect(page.getByRole("region", { name: "店铺抽屉" })).toHaveAttribute(
+    "data-snap",
+    "collapsed",
+  );
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await expect(page.getByRole("region", { name: "店铺抽屉" })).toHaveAttribute(
+    "data-snap",
+    "half",
+  );
+  await expect(page.getByLabel("搜索日记")).toBeFocused();
+  await page.getByLabel("搜索日记").fill("面包");
+  await expect(
+    page.getByRole("article", { name: "店铺 巷口的面包房", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("搜索日记").press("Escape");
+  await expect(page.getByLabel("搜索日记")).toHaveCount(0);
   await page.goBack();
   await expect(page).toHaveURL(/\/menu$/);
   await expect(page.getByRole("region", { name: "已选菜单" })).toContainText(

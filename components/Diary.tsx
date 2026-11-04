@@ -56,6 +56,7 @@ import MenuStudio from "./MenuStudio";
 import MenuSharing from "./MenuSharing";
 import MenuSurface from "./MenuSurface";
 import MealDraw from "./MealDraw";
+import CompactSearch from "./CompactSearch";
 import TasteStatistics from "./TasteStatistics";
 import { sheetStops, type SheetSnap } from "@/lib/sheet";
 import { Logo, EntryDetail } from "./EntryPresentation";
@@ -501,23 +502,38 @@ export default function Diary() {
     : sheetStops(viewport)[snap];
   const toolbar = (
     <>
-      <div className="search-box">
-        <Search size={16} />
-        <input
-          aria-label="搜索日记"
-          placeholder={recipe ? "搜索菜名或食材" : "搜索店名或地址"}
-          value={query}
-          onFocus={() => {
-            if (snap === "collapsed") setSnap("half");
-          }}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {query && (
-          <button aria-label="清空搜索" onClick={() => setQuery("")}>
-            <X size={14} />
+      {recipe && (
+        <div className="menu-tools" aria-label="我的菜单工具">
+          <button onClick={() => setDrawOpen(true)}>
+            <Dices size={15} />
+            <span>今天吃什么</span>
           </button>
-        )}
-      </div>
+          <button
+            aria-label="AI 生成 / 导入"
+            onClick={() => openMenuTool("generate")}
+          >
+            <Sparkles size={15} />
+            <span>AI 菜谱</span>
+          </button>
+          <button onClick={() => openMenuTool("share")}>
+            <QrCode size={15} />
+            <span>点餐二维码</span>
+          </button>
+          <button onClick={() => openMenuTool("orders")}>
+            <ClipboardList size={15} />
+            <span>收到的点餐</span>
+          </button>
+        </div>
+      )}
+      <CompactSearch
+        key={kind}
+        value={query}
+        onChange={setQuery}
+        placeholder={recipe ? "搜索菜名或食材" : "搜索店名或地址"}
+        onOpen={() => {
+          if (snap === "collapsed") setSnap("half");
+        }}
+      />
       <button
         className={`favorites-filter ${favorites ? "selected" : ""}`}
         aria-label="只看心头好"
@@ -751,29 +767,6 @@ export default function Diary() {
         summary={`${filtered.length} ${recipe ? "道菜" : "家店"}`}
         toolbar={toolbar}
       >
-        {recipe && (
-          <div className="menu-tools" aria-label="我的菜单工具">
-            <button onClick={() => setDrawOpen(true)}>
-              <Dices size={15} />
-              <span>今天吃什么</span>
-            </button>
-            <button
-              aria-label="AI 生成 / 导入"
-              onClick={() => openMenuTool("generate")}
-            >
-              <Sparkles size={15} />
-              <span>AI 菜谱</span>
-            </button>
-            <button onClick={() => openMenuTool("share")}>
-              <QrCode size={15} />
-              <span>点餐二维码</span>
-            </button>
-            <button onClick={() => openMenuTool("orders")}>
-              <ClipboardList size={15} />
-              <span>收到的点餐</span>
-            </button>
-          </div>
-        )}
         {filters}
         {scope === "mine" && !user && !demo ? (
           <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />

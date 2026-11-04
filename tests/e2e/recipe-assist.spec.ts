@@ -200,13 +200,11 @@ test("inline AI drafts, article import, fun prices and repeated meal reviews per
     })
       .png()
       .toBuffer();
-    await page
-      .getByLabel("这次用餐照片", { exact: true })
-      .setInputFiles({
-        name: "meal.png",
-        mimeType: "image/png",
-        buffer: photo,
-      });
+    await page.getByLabel("这次用餐照片", { exact: true }).setInputFiles({
+      name: "meal.png",
+      mimeType: "image/png",
+      buffer: photo,
+    });
     await expect(
       page.getByAltText("这次用餐新照片 1", { exact: true }),
     ).toBeVisible();
@@ -425,6 +423,7 @@ test("random and favorite draws work in menu and map, and primary action letteri
     name,
   );
   await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
   await page
     .getByLabel("搜索日记", { exact: true })
     .fill(DEMO_RECIPES.find((e) => !e.favorite)!.name);
