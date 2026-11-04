@@ -5,6 +5,7 @@ import "./themes.css";
 import "./menu.css";
 import "./workspace.css";
 import "./features.css";
+import "./toolbar.css";
 import ThemeProvider from "@/components/ThemeProvider";
 import { DEFAULT_THEME, themeBootstrap } from "@/lib/themes";
 export const metadata: Metadata = {

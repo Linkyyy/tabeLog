@@ -113,7 +113,7 @@ export default function BottomSheet(props: Props) {
           上拉展开清单，下拉收起；也可使用上下方向键。
         </span>
       </div>
-      <div className="sheet-toolbar">
+      <div className="sheet-toolbar unified-toolbar">
         <span className="sheet-summary">{props.summary}</span>
         {props.toolbar}
         <div className="sheet-snap-buttons">

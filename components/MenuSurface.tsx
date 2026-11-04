@@ -7,7 +7,7 @@ export default function MenuSurface({
 }: ComponentProps<typeof BottomSheet>) {
   return (
     <main className="menu-surface" aria-label="我的菜单">
-      <div className="sheet-toolbar menu-toolbar">
+      <div className="sheet-toolbar menu-toolbar unified-toolbar">
         <span className="sheet-summary">{summary}</span>
         {toolbar}
       </div>

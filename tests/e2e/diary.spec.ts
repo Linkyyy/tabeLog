@@ -1,3 +1,4 @@
+import { openDiaryTool } from "./toolbar-helpers";
 import { test, expect, type BrowserContext } from "@playwright/test";
 import sharp from "sharp";
 import { DatabaseSync } from "node:sqlite";
@@ -305,7 +306,7 @@ test("responsive module previews and login prompt without polluting real records
   await expect(page.getByRole("slider", { name: "清单抽屉高度" })).toHaveCount(
     0,
   );
-  await expect(page.getByText("你正在浏览示例菜谱")).toBeVisible();
+  await expect(page.getByLabel("示例模式", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "番茄慢炖牛腩", exact: true }),
   ).toBeVisible();
@@ -321,7 +322,7 @@ test("responsive module previews and login prompt without polluting real records
   await page.getByRole("button", { name: "番茄慢炖牛腩", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("食材清单");
   await page.getByRole("button", { name: "关闭", exact: true }).click();
-  await page.getByRole("button", { name: "回到真实记录", exact: true }).click();
+  await openDiaryTool(page, "回到真实记录");
   await page.getByLabel("浏览空间", { exact: true }).selectOption("mine");
   await expect(page.getByLabel("邮箱", { exact: true })).toBeVisible();
 });
@@ -837,7 +838,7 @@ test("default menu route, navigation, filtered meal draws and basket state work 
     ).toBeVisible();
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await openDiaryTool(page, "今天吃什么");
   await page.getByRole("radio", { name: "抽 3 道菜", exact: true }).check();
   await page.getByRole("button", { name: "开始抽签", exact: true }).click();
   await expect(
@@ -855,7 +856,7 @@ test("default menu route, navigation, filtered meal draws and basket state work 
     .getByRole("complementary", { name: "菜品分类" })
     .getByRole("button", { name: /甜点/ })
     .click();
-  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await openDiaryTool(page, "今天吃什么");
   await expect(
     page.getByRole("radio", { name: "抽 2 道菜", exact: true }),
   ).toBeDisabled();
@@ -881,7 +882,7 @@ test("default menu route, navigation, filtered meal draws and basket state work 
   ).toBeFocused();
   await page.getByRole("button", { name: "搜索", exact: true }).click();
   await expect(page.getByLabel("搜索日记")).toHaveValue("不存在的食物");
-  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await openDiaryTool(page, "今天吃什么");
   await expect(page.getByRole("dialog")).toContainText("当前没有可抽取的菜谱");
   await expect(
     page.getByRole("button", { name: "开始抽签", exact: true }),

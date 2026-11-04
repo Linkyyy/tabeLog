@@ -1,0 +1,262 @@
+/* One toolbar row; popovers do not add rows or scrolling containers. */
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  margin-right: auto;
+  flex-shrink: 0;
+}
+.toolbar-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 3px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: 7px;
+  min-width: 0;
+}
+.toolbar-select:first-child {
+  color: var(--accent-ink, var(--rust));
+}
+.toolbar-select select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.toolbar-select:focus-within {
+  outline: 2px solid var(--rust);
+  outline-offset: 1px;
+}
+.toolbar-select > svg {
+  flex-shrink: 0;
+}
+.select-short {
+  display: none;
+}
+.diary-tools {
+  position: relative;
+  flex-shrink: 0;
+}
+.diary-tools > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--accent-ink, var(--rust));
+  font-size: 11px;
+  cursor: pointer;
+  position: relative;
+}
+.diary-tools > summary::-webkit-details-marker {
+  display: none;
+}
+.diary-tools[open] > summary {
+  background: var(--accent-soft, var(--soft));
+  border-color: color-mix(in srgb, var(--rust) 32%, var(--line));
+}
+.diary-tools[open] > summary > svg:last-of-type {
+  transform: rotate(180deg);
+}
+.tools-demo-dot {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--rust);
+}
+.diary-tools-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 7px);
+  width: 184px;
+  padding: 6px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  box-shadow: 0 8px 26px var(--shadow, #26334018);
+  z-index: 5;
+}
+.diary-tools-popover > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 10px;
+  border-radius: 8px;
+  color: var(--accent-ink, var(--rust));
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+.diary-tools-popover > button:hover {
+  background: var(--accent-soft, var(--soft));
+}
+.tools-demo-note {
+  border-top: 1px solid var(--line);
+  padding: 10px 8px 4px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.tools-demo-note > button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-ink, var(--rust));
+  font-size: 10px;
+  text-align: left;
+  padding: 3px 0;
+}
+html[data-theme] .map-application .unified-toolbar {
+  flex-wrap: nowrap;
+  gap: 9px;
+  min-height: 51px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--line);
+}
+html[data-theme] .unified-toolbar > .sheet-summary {
+  display: block;
+  margin-right: 0;
+  min-width: 32px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+html[data-theme] .map-application .unified-toolbar .favorites-filter {
+  width: 34px;
+  height: 34px;
+}
+html[data-theme] .map-application .menu-scroll {
+  padding-top: 16px;
+}
+/* Categories, dishes and the basket share the list's single vertical scroll. */
+html[data-theme]
+  .map-application.menu-application
+  :is(.menu-categories, .basket-items) {
+  max-height: none;
+  overflow: visible;
+}
+html[data-theme] .menu-surface :is(.menu-categories, .desktop-basket) {
+  position: static;
+}
+.modal :is(.basket-items, .share-dish-list) {
+  max-height: none;
+  overflow: visible;
+}
+.public-menu-workspace {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  align-items: start;
+}
+.public-menu-workspace
+  > :is(.public-categories, .public-dish-list, .public-desktop-cart) {
+  overflow: visible;
+}
+body:has(.modal[open]) :is(.sheet-scroll, .public-menu-workspace) {
+  scrollbar-width: none;
+}
+body:has(.modal[open])
+  :is(.sheet-scroll, .public-menu-workspace)::-webkit-scrollbar {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .select-long {
+    display: none;
+  }
+  .select-short {
+    display: inline;
+  }
+  .toolbar-filters {
+    gap: 5px;
+  }
+  .toolbar-select {
+    font-size: 10px;
+    gap: 3px;
+    padding: 7px 2px;
+  }
+  html[data-theme] .map-application .unified-toolbar {
+    gap: 6px;
+    padding: 8px 12px;
+  }
+}
+@media (max-width: 650px) {
+  html[data-theme] .unified-toolbar > .sheet-summary {
+    display: none;
+  }
+  html[data-theme] .map-application .unified-toolbar {
+    gap: 5px;
+    min-height: 46px;
+    padding: 7px 10px;
+  }
+  .toolbar-filters {
+    gap: 4px;
+  }
+  .toolbar-select {
+    font-size: 10px;
+    padding: 5px 1px;
+    gap: 2px;
+  }
+  .toolbar-select > svg {
+    width: 9px;
+    height: 9px;
+  }
+  .diary-tools > summary {
+    height: 28px;
+    width: 29px;
+    padding: 0;
+    gap: 1px;
+  }
+  .diary-tools > summary > span {
+    display: none;
+  }
+  html[data-theme]
+    .map-application
+    .unified-toolbar
+    :is(.compact-search-trigger, .favorites-filter) {
+    width: 28px;
+    height: 28px;
+  }
+  .unified-toolbar .sheet-snap-buttons {
+    gap: 0;
+  }
+  .unified-toolbar .sheet-snap-buttons > button {
+    width: 18px;
+    height: 28px;
+  }
+  .unified-toolbar .sheet-snap-buttons > button > svg {
+    width: 14px;
+  }
+  html[data-theme] .map-application .menu-scroll {
+    padding-top: 12px;
+  }
+}
+@media (max-width: 350px) {
+  html[data-theme] .map-application .unified-toolbar {
+    padding-left: 7px;
+    padding-right: 7px;
+    gap: 3px;
+  }
+  .toolbar-filters {
+    gap: 2px;
+  }
+  .toolbar-select {
+    font-size: 9px;
+  }
+}

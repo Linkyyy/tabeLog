@@ -57,6 +57,8 @@ import MenuSharing from "./MenuSharing";
 import MenuSurface from "./MenuSurface";
 import MealDraw from "./MealDraw";
 import CompactSearch from "./CompactSearch";
+import ToolbarSelect from "./ToolbarSelect";
+import DiaryTools from "./DiaryTools";
 import TasteStatistics from "./TasteStatistics";
 import { sheetStops, type SheetSnap } from "@/lib/sheet";
 import { Logo, EntryDetail } from "./EntryPresentation";
@@ -502,29 +504,54 @@ export default function Diary() {
     : sheetStops(viewport)[snap];
   const toolbar = (
     <>
-      {recipe && (
-        <div className="menu-tools" aria-label="我的菜单工具">
-          <button onClick={() => setDrawOpen(true)}>
-            <Dices size={15} />
-            <span>今天吃什么</span>
-          </button>
-          <button
-            aria-label="AI 生成 / 导入"
-            onClick={() => openMenuTool("generate")}
-          >
-            <Sparkles size={15} />
-            <span>AI 菜谱</span>
-          </button>
-          <button onClick={() => openMenuTool("share")}>
-            <QrCode size={15} />
-            <span>点餐二维码</span>
-          </button>
-          <button onClick={() => openMenuTool("orders")}>
-            <ClipboardList size={15} />
-            <span>收到的点餐</span>
-          </button>
-        </div>
-      )}
+      <div className="toolbar-filters" role="group" aria-label="列表筛选">
+        <ToolbarSelect
+          label="浏览空间"
+          value={scope}
+          onChange={(next) => changeScope(next as "mine" | "public")}
+          options={[
+            { value: "mine", label: "我的空间", short: "我的" },
+            { value: "public", label: "美味广场", short: "广场" },
+          ]}
+        />
+        {scope === "mine" && (
+          <ToolbarSelect
+            label="可见范围筛选"
+            value={privacy}
+            onChange={setPrivacy}
+            options={[
+              { value: "all", label: "全部可见范围", short: "全部" },
+              { value: "private", label: "私人收藏", short: "私人" },
+              { value: "public", label: "公开分享", short: "公开" },
+            ]}
+          />
+        )}
+        <ToolbarSelect
+          label="日记排序"
+          value={sort}
+          onChange={setSort}
+          options={[
+            {
+              value: "date",
+              label: recipe ? "最近下厨" : "最近到店",
+              short: "最近",
+            },
+            { value: "rating", label: "评分优先", short: "评分" },
+          ]}
+        />
+        {!recipe && (
+          <ToolbarSelect
+            label="料理分类"
+            value={category}
+            onChange={setCategory}
+            options={["全部", ...CUISINES].map((value) => ({
+              value,
+              label: value === "全部" ? "全部分类" : value,
+              short: value === "全部" ? "分类" : value,
+            }))}
+          />
+        )}
+      </div>
       <CompactSearch
         key={kind}
         value={query}
@@ -542,58 +569,21 @@ export default function Diary() {
       >
         <Heart size={16} fill={favorites ? "currentColor" : "none"} />
       </button>
-      {!recipe && (
-        <button
-          className="favorites-filter map-draw-trigger"
-          aria-label="今天吃什么"
-          title="今天去哪吃"
-          onClick={() => setDrawOpen(true)}
-        >
-          <Dices size={16} />
-        </button>
-      )}
+      <DiaryTools
+        key={kind}
+        recipe={recipe}
+        demo={demo}
+        onOpen={() => {
+          if (snap === "collapsed") setSnap("half");
+        }}
+        onDraw={() => setDrawOpen(true)}
+        onAI={() => openMenuTool("generate")}
+        onShare={() => openMenuTool("share")}
+        onOrders={() => openMenuTool("orders")}
+        onStatistics={() => setStatisticsOpen(true)}
+        onEndDemo={toggleDemo}
+      />
     </>
-  );
-  const filters = (
-    <div className="sheet-filters">
-      <select
-        className="space-select"
-        aria-label="浏览空间"
-        value={scope}
-        onChange={(e) => changeScope(e.target.value as "mine" | "public")}
-      >
-        <option value="mine">我的空间</option>
-        <option value="public">美味广场</option>
-      </select>
-      {scope === "mine" && (
-        <select
-          aria-label="可见范围筛选"
-          value={privacy}
-          onChange={(e) => setPrivacy(e.target.value)}
-        >
-          <option value="all">全部可见范围</option>
-          <option value="private">私人收藏</option>
-          <option value="public">公开分享</option>
-        </select>
-      )}
-      <select
-        aria-label="日记排序"
-        value={sort}
-        onChange={(e) => setSort(e.target.value)}
-      >
-        <option value="date">{recipe ? "最近下厨" : "最近到店"}</option>
-        <option value="rating">评分优先</option>
-      </select>
-      {demo && (
-        <span className="sheet-demo-note">
-          <Sparkles size={11} />
-          <span>你正在浏览示例{recipe ? "菜谱" : "日记"}</span>
-          <button onClick={toggleDemo} aria-label="回到真实记录">
-            <X size={12} />
-          </button>
-        </span>
-      )}
-    </div>
   );
   return (
     <div
@@ -767,7 +757,6 @@ export default function Diary() {
         summary={`${filtered.length} ${recipe ? "道菜" : "家店"}`}
         toolbar={toolbar}
       >
-        {filters}
         {scope === "mine" && !user && !demo ? (
           <AuthForm onSuccess={signedIn} registrationOpen={registrationOpen} />
         ) : (
@@ -798,27 +787,6 @@ export default function Diary() {
               />
             ) : (
               <>
-                <div
-                  className="category-tabs store-categories"
-                  role="group"
-                  aria-label="料理分类"
-                >
-                  {["全部", ...CUISINES].map((c) => (
-                    <button
-                      key={c}
-                      className={category === c ? "active" : ""}
-                      aria-pressed={category === c}
-                      onClick={() => setCategory(c)}
-                    >
-                      {c === "全部" ? (
-                        <Utensils size={13} />
-                      ) : (
-                        <span>{icons[c]}</span>
-                      )}
-                      {c}
-                    </button>
-                  ))}
-                </div>
                 <StoreExplorer
                   items={filtered}
                   activeId={activeId}

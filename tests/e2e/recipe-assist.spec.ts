@@ -1,3 +1,4 @@
+import { openDiaryTool } from "./toolbar-helpers";
 import { test, expect, type BrowserContext } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
@@ -408,7 +409,7 @@ test("random and favorite draws work in menu and map, and primary action letteri
   await page.goto("/menu");
   await page.getByLabel("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "浏览示例日记", exact: true }).click();
-  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await openDiaryTool(page, "今天吃什么");
   await page.getByRole("button", { name: "收藏里吃", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "收藏里吃", exact: true }),
@@ -427,7 +428,7 @@ test("random and favorite draws work in menu and map, and primary action letteri
   await page
     .getByLabel("搜索日记", { exact: true })
     .fill(DEMO_RECIPES.find((e) => !e.favorite)!.name);
-  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await openDiaryTool(page, "今天吃什么");
   await page.getByRole("button", { name: "收藏里吃", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("当前没有收藏的菜谱");
   await expect(
@@ -450,7 +451,7 @@ test("random and favorite draws work in menu and map, and primary action letteri
   }
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.getByRole("link", { name: "美食地图", exact: true }).click();
-  await page.getByRole("button", { name: "今天吃什么", exact: true }).click();
+  await openDiaryTool(page, "今天吃什么");
   await expect(page.getByRole("dialog")).toContainText("今天去哪吃");
   await expect(
     page.getByRole("radio", { name: "抽 2 道菜", exact: true }),
@@ -476,7 +477,7 @@ test("random and favorite draws work in menu and map, and primary action letteri
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBe(width);
     await expect(
-      page.getByRole("button", { name: "今天吃什么", exact: true }),
+      page.getByRole("button", { name: "菜单工具", exact: true }),
     ).toBeVisible();
   }
 });

@@ -1,3 +1,4 @@
+import { openDiaryTool } from "./toolbar-helpers";
 import { test, expect, type BrowserContext } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
@@ -225,9 +226,7 @@ test("recipe tools preview controlled AI output, edit and import it, and directl
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("link", { name: "我的菜单", exact: true }).click();
-  await page
-    .getByRole("button", { name: "AI 生成 / 导入", exact: true })
-    .click();
+  await openDiaryTool(page, "AI 生成 / 导入");
   await page.getByRole("button", { name: "接口设置", exact: true }).click();
   await expect(page.getByLabel("API 基础地址", { exact: true })).toHaveValue(
     "https://api.deepseek.com",
@@ -256,9 +255,7 @@ test("recipe tools preview controlled AI output, edit and import it, and directl
   await expect(
     page.getByRole("button", { name: "编辑后的时蔬", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "AI 生成 / 导入", exact: true })
-    .click();
+  await openDiaryTool(page, "AI 生成 / 导入");
   await page.getByRole("button", { name: "快速导入", exact: true }).click();
   await page.getByLabel("导入菜谱文件", { exact: true }).setInputFiles({
     name: "recipes.json",
@@ -302,7 +299,7 @@ test("QR menu opens on phones, submits real guest orders and the owner processes
     );
     await page.goto("/");
     await page.getByRole("link", { name: "我的菜单", exact: true }).click();
-    await page.getByRole("button", { name: "点餐二维码", exact: true }).click();
+    await openDiaryTool(page, "点餐二维码");
     await expect(
       page.getByLabel("分享 私人厨房实验", { exact: true }),
     ).toBeDisabled();
