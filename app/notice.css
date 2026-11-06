@@ -1,0 +1,35 @@
+:root {
+  --site-notice-height: 28px;
+}
+.site-notice {
+  height: var(--site-notice-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  background: var(--accent-soft, var(--soft));
+  color: var(--accent-ink, var(--rust));
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.site-content {
+  position: relative;
+  height: calc(100dvh - var(--site-notice-height));
+  min-height: 0;
+}
+.site-content > .map-application.ordering-app {
+  position: absolute;
+  height: 100%;
+}
+.site-content .public-menu-app {
+  height: 100%;
+}
+.site-content :is(.boot-screen, .login-page, .menu-unavailable) {
+  height: 100%;
+  min-height: 100%;
+}

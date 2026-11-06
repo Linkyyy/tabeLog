@@ -4,6 +4,8 @@
 
 在线使用：[我的菜单](https://tabelog-silk.vercel.app/menu) · [美食地图](https://tabelog-silk.vercel.app/map)。首页默认进入我的菜单。
 
+页面顶部统一显示「网站正在建设中」通知，随主题配色；通知预留独立空间，不遮挡导航或产生额外滚动条。[菜单效果](docs/screenshots/site-notice-menu.png) · [地图效果](docs/screenshots/site-notice-map.png)
+
 ## 两个模块
 
 | 模块         | 可以记录的内容                                                                 |

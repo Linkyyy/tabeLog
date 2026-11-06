@@ -137,7 +137,11 @@ export default function Diary() {
     notify(`已将 ${imported.length} 道菜保存到我的菜单，仅自己可见。`);
   }
   useEffect(() => {
-    const update = () => setViewport(window.innerHeight);
+    const update = () =>
+      setViewport(
+        document.getElementById("site-content")?.clientHeight ||
+          window.innerHeight,
+      );
     update();
     window.addEventListener("resize", update);
     const previous = document.body.style.overflow;

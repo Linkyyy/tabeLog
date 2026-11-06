@@ -340,7 +340,7 @@ test("fullscreen food map retains its draggable sheet and uses route navigation 
   await expect(map.locator(".leaflet-container")).toBeVisible();
   await expect(sheet).toHaveAttribute("data-snap", "half");
   let box = await map.boundingBox();
-  expect(box).toEqual({ x: 0, y: 0, width: 390, height: 844 });
+  expect(box).toEqual({ x: 0, y: 28, width: 390, height: 816 });
   await expect(page.locator(".browse-intro")).toHaveCount(0);
   await expect(page.locator(".site-footer")).toHaveCount(0);
   const handle = await slider.boundingBox();
@@ -358,7 +358,7 @@ test("fullscreen food map retains its draggable sheet and uses route navigation 
   await expect(sheet).toHaveAttribute("data-snap", "expanded");
   await expect
     .poll(async () => Math.round((await sheet.boundingBox())!.height))
-    .toBe(758);
+    .toBe(730);
   const expanded = await slider.boundingBox();
   await page.mouse.move(expanded!.x + expanded!.width / 2, expanded!.y + 12);
   await page.mouse.down();
@@ -561,7 +561,7 @@ test("all five themes switch in settings without losing menu state; saved appear
   await page.getByRole("button", { name: "菜单工具", exact: true }).click();
   await expect(page.getByRole("region", { name: "店铺抽屉" })).toHaveCSS(
     "height",
-    "405px",
+    "392px",
   );
   const streetBefore = await street.getAttribute("d");
   await page.getByRole("button", { name: "设置", exact: true }).click();
@@ -751,7 +751,8 @@ test("menu omits all map rendering; food map keeps demo cartography, themes and 
     page.locator(".workspace-map,.map-shell,.leaflet-container"),
   ).toHaveCount(0);
   expect(tileRequests).toEqual([]);
-  expect((await menu.boundingBox())!.y).toBeLessThan(100);
+  const contentTop = (await page.locator(".site-content").boundingBox())!.y;
+  expect((await menu.boundingBox())!.y - contentTop).toBeLessThan(100);
   expect((await menu.boundingBox())!.height).toBeGreaterThan(700);
   await expect(page.getByAltText("番茄慢炖牛腩的美食照片")).toHaveJSProperty(
     "naturalWidth",

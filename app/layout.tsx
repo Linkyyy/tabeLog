@@ -6,6 +6,8 @@ import "./menu.css";
 import "./workspace.css";
 import "./features.css";
 import "./toolbar.css";
+import "./notice.css";
+import { Megaphone } from "lucide-react";
 import ThemeProvider from "@/components/ThemeProvider";
 import { DEFAULT_THEME, themeBootstrap } from "@/lib/themes";
 export const metadata: Metadata = {
@@ -31,7 +33,15 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <aside className="site-notice" role="status" aria-label="网站公告">
+            <Megaphone size={13} aria-hidden="true" />
+            <span>网站正在建设中</span>
+          </aside>
+          <div className="site-content" id="site-content">
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
